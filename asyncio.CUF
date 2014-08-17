@@ -1,0 +1,199 @@
+#ifdef GPU
+  module asyncio_gpu
+#else
+  module asyncio
+#endif
+
+  interface asyncio_begin
+    module procedure asyncio_begin_default
+    module procedure asyncio_begin_default_unit
+    module procedure asyncio_begin_default_format
+    module procedure asyncio_begin
+  end interface asyncio_begin
+  
+  interface asyncio_write
+    module procedure asyncio_write_integer
+    module procedure asyncio_write_long_long
+    module procedure asyncio_write_float
+    module procedure asyncio_write_double
+  end interface asyncio_write
+
+  interface
+
+#ifdef GPU
+    attributes(device) &
+#endif
+    subroutine asyncio_begin_default_c(unt, frmt) bind(C)
+    use iso_c_binding
+    implicit none
+    character(c_char), value :: unt, frmt
+    end subroutine asyncio_begin_default_c
+
+#ifdef GPU
+    attributes(device) &
+#endif
+    subroutine asyncio_begin_default_format_c(unt, frmt) bind(C)
+    use iso_c_binding
+    implicit none
+    integer(c_int), value :: unt
+    character(c_char), value :: frmt
+    end subroutine asyncio_begin_default_format_c
+
+#ifdef GPU
+    attributes(device) &
+#endif
+    subroutine asyncio_begin_default_unit_c(unt, func, frmt) bind(C)
+    use iso_c_binding
+    implicit none
+    character(c_char), value :: unt
+    integer :: func
+    integer(c_int), value :: frmt
+    end subroutine asyncio_begin_default_unit_c
+
+#ifdef GPU
+    attributes(device) &
+#endif
+    subroutine asyncio_begin_c(unt, func, frmt) bind(C)
+    use iso_c_binding
+    implicit none
+    integer(c_int), value :: unt
+    integer :: func
+    integer(c_int), value :: frmt
+    end subroutine asyncio_begin_c
+
+#ifdef GPU
+    attributes(device) &
+#endif
+    subroutine asyncio_write_integer_c(val) bind(C)
+    use iso_c_binding
+    implicit none
+    integer(c_int), value :: val
+    end subroutine asyncio_write_integer_c
+
+#ifdef GPU
+    attributes(device) &
+#endif
+    subroutine asyncio_write_long_long_c(val) bind(C)
+    use iso_c_binding
+    implicit none
+    integer(c_long_long), value :: val
+    end subroutine asyncio_write_long_long_c
+
+#ifdef GPU
+    attributes(device) &
+#endif
+    subroutine asyncio_write_float_c(val) bind(C)
+    use iso_c_binding
+    implicit none
+    real(c_float), value :: val
+    end subroutine asyncio_write_float_c
+
+#ifdef GPU
+    attributes(device) &
+#endif
+    subroutine asyncio_write_double_c(val) bind(C)
+    use iso_c_binding
+    implicit none
+    real(c_double), value :: val
+    end subroutine asyncio_write_double_c
+
+#ifdef GPU    
+    attributes(device) &
+#endif
+    subroutine asyncio_end() bind(C)
+    end subroutine asyncio_end
+    
+    subroutine asyncio_flush() bind(C)
+    end subroutine asyncio_flush
+
+  end interface
+
+contains
+
+#ifdef GPU
+  attributes(device) &
+#endif
+  subroutine asyncio_begin_default(unt, frmt)
+  use iso_c_binding
+  implicit none
+  character(c_char), value :: unt, frmt
+  call asyncio_begin_default_c(unt, frmt)
+  end subroutine asyncio_begin_default
+
+#ifdef GPU
+  attributes(device) &
+#endif
+  subroutine asyncio_begin_default_format(unt, frmt)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: unt
+  character(c_char), value :: frmt
+  call asyncio_begin_default_format_c(unt, frmt)
+  end subroutine asyncio_begin_default_format
+
+#ifdef GPU
+  attributes(device) &
+#endif
+  subroutine asyncio_begin_default_unit(unt, func, frmt)
+  use iso_c_binding
+  implicit none
+  character(c_char), value :: unt
+  integer :: func
+  integer(c_int), value :: frmt
+  call asyncio_begin_default_unit_c(unt, func, frmt)
+  end subroutine asyncio_begin_default_unit
+
+#ifdef GPU
+  attributes(device) &
+#endif
+  subroutine asyncio_begin(unt, func, frmt)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: unt
+  integer :: func
+  integer(c_int), value :: frmt
+  call asyncio_begin_c(unt, func, frmt)
+  end subroutine asyncio_begin
+
+#ifdef GPU
+  attributes(device) &
+#endif
+  subroutine asyncio_write_integer(val)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: val
+  call asyncio_write_integer_c(val)
+  end subroutine asyncio_write_integer
+
+#ifdef GPU
+  attributes(device) &
+#endif
+  subroutine asyncio_write_long_long(val)
+  use iso_c_binding
+  implicit none
+  integer(c_long_long), value :: val
+  call asyncio_write_long_long_c(val)
+  end subroutine asyncio_write_long_long
+
+#ifdef GPU
+  attributes(device) &
+#endif
+  subroutine asyncio_write_float(val)
+  use iso_c_binding
+  implicit none
+  real(c_float), value :: val
+  call asyncio_write_float_c(val)
+  end subroutine asyncio_write_float
+
+#ifdef GPU
+  attributes(device) &
+#endif
+  subroutine asyncio_write_double(val)
+  use iso_c_binding
+  implicit none
+  real(c_double), value :: val
+  call asyncio_write_double_c(val)
+  end subroutine asyncio_write_double
+
+  end module
+

@@ -1,0 +1,13 @@
+program test
+use asyncio_gpu
+
+call kernel1<<<1,1>>>()
+call cudaDeviceSynchronize()
+
+call kernel2<<<1,1>>>()
+call cudaDeviceSynchronize()
+
+call asyncio_flush()
+
+end program test
+

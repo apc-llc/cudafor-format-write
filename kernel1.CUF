@@ -1,0 +1,38 @@
+#ifdef GPU
+  attributes(global) &
+#endif
+  subroutine kernel1
+#ifdef GPU
+  use asyncio_gpu
+#else
+  use asyncio
+#endif
+  implicit none
+
+  integer, parameter :: length = 1024
+  real, dimension(length) :: arr
+  integer :: i
+  integer(8) :: i8
+
+  do i = 1, length
+    arr(i) = i
+  enddo
+
+  i8 = i
+
+  call asyncio_begin('*','*')
+  call asyncio_write(arr(length / 2))
+  call asyncio_write(arr(length))
+  call asyncio_write(length)
+  call asyncio_write(i8)
+  call asyncio_end()
+
+  call asyncio_begin('*','*')
+  call asyncio_write(arr(length / 4))
+  call asyncio_write(arr(length))
+  call asyncio_write(length)
+  call asyncio_write(i8)
+  call asyncio_end()
+
+  end subroutine kernel1
+
