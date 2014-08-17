@@ -4,7 +4,7 @@ This package makes it possible to use an equivalent of `write` command from with
 
 ## Overview
 
-Since `write` command could not be overriden for standard types, the best bet is to create a runtime library with closely resembling interface. Thus, we've created the following API:
+Since `write` command could not be overridden for standard types, the best bet is to create a runtime library with closely resembling interface. Thus, we've created the following API:
 
 ```
 call asyncio_begin('*','*')
@@ -40,7 +40,7 @@ Finally, ASYNCIO implements both GPU and host writes -- the same code could be e
 
 ## Methodology
 
-The GPU part of ASYNCIO implementation is straight-forward: on device side data is getting serialized into large linear buffer. Host part is trickier, because we need to deserialize buffer contents according to the specified format. Instead of doing this explicitly, which would undoubtfully be a very large work, ASYNCIO simply deploys libgfortran's internal I/O runtime functions on the bufferred data.
+The GPU part of ASYNCIO implementation is straight-forward: on device side data is getting serialized into large linear buffer. Host part is trickier, because we need to deserialize buffer contents according to the specified format. Instead of doing this explicitly, which would undoubtedly be a very large work, ASYNCIO simply deploys libgfortran's internal I/O runtime functions on the buffered data.
 
 ## Package contents
 
