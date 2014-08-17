@@ -38,7 +38,7 @@ asyncio.cu.gpu.o: asyncio.cu
 #
 
 test_cpu: kernel1.cpu.o kernel2.cpu.o main_cpu.o asyncio.CUF.cpu.o asyncio.cu.cpu.o hooks.o
-	$(PGF90) $^ -o $@ ~/forge/pgiwrapper/x86/libpgiwrapper.a -lgfortran -lgcc_s -lstdc++ -ldl -lelf
+	$(PGF90) $^ -o $@ -lgfortran -lgcc_s -lstdc++ -ldl -lelf
 
 main_cpu.o: main_cpu.f90
 	$(PGF90) -g -m$(BITS) -c $< -o $@
