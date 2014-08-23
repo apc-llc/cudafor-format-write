@@ -32,7 +32,9 @@ enum type_t
 	TYPE_INT,
 	TYPE_LONG_LONG,
 	TYPE_FLOAT,
-	TYPE_DOUBLE
+	TYPE_DOUBLE,
+	TYPE_BOOLEAN,
+	TYPE_CHAR
 };
 
 #ifdef __CUDACC__
@@ -264,6 +266,48 @@ extern "C" DEVICE void asyncio_write_double_c(double val)
 	t_curr_nitems++;
 }
 
+extern "C" DEVICE void asyncio_write_logical_c(bool val)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = TYPE_BOOLEAN;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &val, sizeof(bool));
+	asyncio_pbuffer += sizeof(bool);
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_char_c(char* val, int length)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = TYPE_CHAR;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &length, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, val, sizeof(char) * length);
+	asyncio_pbuffer += sizeof(char) * length;
+	t_curr_nitems++;
+}
+
 extern "C" void asyncio_flush();
 
 extern "C" DEVICE void asyncio_end()
@@ -365,6 +409,8 @@ extern "C" void __wrap__gfortran_st_write(st_parameter_dt * stp)
 extern "C" void _gfortran_st_write_done(st_parameter_dt *);
 extern "C" void _gfortran_transfer_integer_write(st_parameter_dt *, void *, int);
 extern "C" void _gfortran_transfer_real_write(st_parameter_dt *, void *, int);
+extern "C" void _gfortran_transfer_logical_write(st_parameter_dt *, void *, int);
+extern "C" void _gfortran_transfer_character_write(st_parameter_dt *, void *, int);
 
 static map<void*, string>* pfuncs = NULL, funcs;
 static map<string, void*> formats;
@@ -396,6 +442,22 @@ static void st_write_callback(transaction_t* t, st_parameter_dt* st_parameter)
 			_gfortran_transfer_real_write(st_parameter, value, sizeof(double));
 			t->offset += sizeof(double);
 			break;
+		case TYPE_BOOLEAN :
+			_gfortran_transfer_logical_write(st_parameter, value, sizeof(bool));
+			t->offset += sizeof(bool);
+			break;
+		case TYPE_CHAR :
+			{
+				int length = *(int*)value;
+				t->offset += sizeof(int);
+				value = (void*)(t->buffer + t->offset);
+				_gfortran_transfer_character_write(st_parameter, value, sizeof(char) * length);
+				t->offset += sizeof(char) * length;
+			}
+			break;
+		default :
+			fprintf(stderr, "Unknown data type %d\n", type);
+			exit(1);
 		}
 	}
 

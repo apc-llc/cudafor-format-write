@@ -16,6 +16,20 @@
     module procedure asyncio_write_long_long
     module procedure asyncio_write_float
     module procedure asyncio_write_double
+    module procedure asyncio_write_logical
+#ifndef GPU
+    module procedure asyncio_write_char
+    module procedure asyncio_write_char_array1d
+    module procedure asyncio_write_char_array2d
+#endif
+    module procedure asyncio_write_logical_array1d
+    module procedure asyncio_write_integer_array1d
+    module procedure asyncio_write_integer_array2d
+    module procedure asyncio_write_float_array1d
+    module procedure asyncio_write_double_array1d
+    module procedure asyncio_write_double_array2d
+    module procedure asyncio_write_double_array3d
+    module procedure asyncio_write_double_array4d
   end interface asyncio_write
 
   interface
@@ -96,6 +110,25 @@
     implicit none
     real(c_double), value :: val
     end subroutine asyncio_write_double_c
+
+#ifdef GPU
+    attributes(device) &
+#endif
+    subroutine asyncio_write_logical_c(val) bind(C)
+    use iso_c_binding
+    implicit none
+    logical(c_bool), value :: val
+    end subroutine asyncio_write_logical_c
+
+#ifdef GPU
+    attributes(device) &
+#endif
+    subroutine asyncio_write_char_c(val, length) bind(C)
+    use iso_c_binding
+    implicit none
+    character(c_char) :: val
+    integer(c_int), value :: length
+    end subroutine asyncio_write_char_c
 
 #ifdef GPU    
     attributes(device) &
@@ -195,5 +228,118 @@ contains
   call asyncio_write_double_c(val)
   end subroutine asyncio_write_double
 
+#ifdef GPU
+  attributes(device) &
+#endif
+  subroutine asyncio_write_logical(val)
+  use iso_c_binding
+  implicit none
+  logical(c_bool), value :: val
+  call asyncio_write_logical_c(val)
+  end subroutine asyncio_write_logical
+
+#ifndef GPU
+  subroutine asyncio_write_char(val)
+  use iso_c_binding
+  implicit none
+  character(len=*) :: val
+  call asyncio_write_char_c(val,len(val))
+  end subroutine asyncio_write_char
+
+  subroutine asyncio_write_char_array1d(val, dim1)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim1
+  character(len=*) :: val(dim1)
+  end subroutine asyncio_write_char_array1d
+
+  subroutine asyncio_write_char_array2d(val, dim1, dim2)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim1, dim2
+  character(len=*) :: val(dim1, dim2)
+  end subroutine asyncio_write_char_array2d
+#endif
+
+#ifdef GPU
+  attributes(device) &
+#endif
+  subroutine asyncio_write_logical_array1d(val, dim1)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim1
+  logical :: val(dim1)
+  end subroutine asyncio_write_logical_array1d
+
+#ifdef GPU
+  attributes(device) &
+#endif
+  subroutine asyncio_write_integer_array1d(val, dim1)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim1
+  integer(c_int) :: val(dim1)
+  end subroutine asyncio_write_integer_array1d
+
+#ifdef GPU
+  attributes(device) &
+#endif
+  subroutine asyncio_write_integer_array2d(val, dim1, dim2)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim1, dim2
+  integer(c_int) :: val(dim1,dim2)
+  end subroutine asyncio_write_integer_array2d
+
+#ifdef GPU
+  attributes(device) &
+#endif
+  subroutine asyncio_write_float_array1d(val, dim1)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim1
+  real(c_float) :: val(dim1)
+  end subroutine asyncio_write_float_array1d
+
+#ifdef GPU
+  attributes(device) &
+#endif
+  subroutine asyncio_write_double_array1d(val, dim1)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim1
+  real(c_double) :: val(dim1)
+  end subroutine asyncio_write_double_array1d
+
+#ifdef GPU
+  attributes(device) &
+#endif
+  subroutine asyncio_write_double_array2d(val, dim1, dim2)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim1, dim2
+  real(c_double) :: val(dim1,dim2)
+  end subroutine asyncio_write_double_array2d
+
+#ifdef GPU
+  attributes(device) &
+#endif
+  subroutine asyncio_write_double_array3d(val, dim1, dim2, dim3)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim1, dim2, dim3
+  real(c_double) :: val(dim1,dim2,dim3)
+  end subroutine asyncio_write_double_array3d
+
+#ifdef GPU
+  attributes(device) &
+#endif
+  subroutine asyncio_write_double_array4d(val, dim1, dim2, dim3, dim4)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim1, dim2, dim3, dim4
+  real(c_double) :: val(dim1,dim2,dim3,dim4)
+  end subroutine asyncio_write_double_array4d
+  
   end module
 
