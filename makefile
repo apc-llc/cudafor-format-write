@@ -31,14 +31,14 @@ asyncio.CUF.gpu.o: asyncio.CUF
 	$(PGF90) -g -c $< -o $@ -DGPU
 
 asyncio.cu.gpu.o: asyncio.cu
-	$(NVCC) -g -m$(BITS) -arch=sm_30 -rdc=true -c $< -o $@
+	$(NVCC) -DDYNAMIC -g -m$(BITS) -arch=sm_30 -rdc=true -c $< -o $@
 
 #
 # CPU test application
 #
 
 test_cpu: kernel1.cpu.o kernel2.cpu.o main_cpu.o asyncio.CUF.cpu.o asyncio.cu.cpu.o hooks.o
-	$(PGF90) $^ -o $@ -lgfortran -lgcc_s -lstdc++ -ldl -lelf
+	$(PGF90) $^ -o $@ ~/forge/pgiwrapper/x86/libpgiwrapper.a -lgfortran -lgcc_s -lstdc++ -ldl -lelf
 
 main_cpu.o: main_cpu.f90
 	$(PGF90) -g -m$(BITS) -c $< -o $@
@@ -53,7 +53,7 @@ asyncio.CUF.cpu.o: asyncio.CUF
 	$(PGF90) -g -m$(BITS) -c $< -o $@
 
 asyncio.cu.cpu.o: asyncio.cu
-	gcc -g -m$(BITS) -x c++ -c $< -o $@
+	gcc -DDYNAMIC -g -m$(BITS) -x c++ -c $< -o $@
 
 hooks.o: hooks.f90
 	gfortran -g -m$(BITS) -c $< -o $@

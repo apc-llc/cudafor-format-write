@@ -23,6 +23,8 @@ struct transaction_t
 	int format;
 	void* func;
 	int nitems;
+	int offset;
+	char* buffer;
 };
 
 enum type_t
@@ -262,6 +264,8 @@ extern "C" DEVICE void asyncio_write_double_c(double val)
 	t_curr_nitems++;
 }
 
+extern "C" void asyncio_flush();
+
 extern "C" DEVICE void asyncio_end()
 {
 #ifdef __CUDACC__
@@ -279,6 +283,11 @@ extern "C" DEVICE void asyncio_end()
 	
 	// Save the current buffer length.
 	asyncio_buffer_length = (size_t)asyncio_pbuffer - (size_t)asyncio_buffer;
+
+#ifndef __CUDACC__
+	// On host we can flush each individual write statement.
+	asyncio_flush();
+#endif
 }
 
 #define CUDA_ERR_CHECK(x)                                   \
@@ -291,16 +300,6 @@ extern "C" DEVICE void asyncio_end()
 
 struct st_parameter_dt;
 
-// st_parameter_dt is gfortran's I/O handler. Since it is
-// internal, we need to get it from the real _gfortran_st_write
-// call, which is done below. The size of st_parameter_dt is
-// not known, and technically may vary depending on gfortran
-// version. So we simply preallocate large enough space.
-#define ST_PARAMETER_BUFFER_SIZE 1024
-
-static st_parameter_dt* st_parameter = NULL;
-char st_parameter_buffer[ST_PARAMETER_BUFFER_SIZE];
-
 extern "C" void asyncio_hook_write_default_unformatted();
 extern "C" void asyncio_hook_write_default_formatted(size_t, char*);
 extern "C" void asyncio_hook_write_unit_unformatted(int);
@@ -310,42 +309,11 @@ static bool inside_hook_write = false;
 
 static jmp_buf get_st_parameter_jmp;
 
-static st_parameter_dt* get_st_parameter_default_unformatted()
-{
-	inside_hook_write = true;
-	int get_st_parameter_val = setjmp(get_st_parameter_jmp);
-	if (!get_st_parameter_val) asyncio_hook_write_default_unformatted();
-	inside_hook_write = false;
-	return st_parameter;
-}
+typedef void (*st_write_callback_t)(transaction_t*, st_parameter_dt*);
+static st_write_callback_t callback;
+static transaction_t* transaction;
 
-static st_parameter_dt* get_st_parameter_default_formatted(char* format)
-{
-	inside_hook_write = true;
-	int get_st_parameter_val = setjmp(get_st_parameter_jmp);
-	if (!get_st_parameter_val) asyncio_hook_write_default_formatted(strlen(format), format);
-	inside_hook_write = false;
-	return st_parameter;
-}
-
-static st_parameter_dt* get_st_parameter_unit_unformatted(int unit)
-{
-	inside_hook_write = true;
-	int get_st_parameter_val = setjmp(get_st_parameter_jmp);
-	if (!get_st_parameter_val) asyncio_hook_write_unit_unformatted(unit);
-	inside_hook_write = false;
-	return st_parameter;
-}
-
-static st_parameter_dt* get_st_parameter_unit_formatted(int unit, char* format)
-{
-	inside_hook_write = true;
-	int get_st_parameter_val = setjmp(get_st_parameter_jmp);
-	if (!get_st_parameter_val) asyncio_hook_write_unit_formatted(unit, strlen(format), format);
-	inside_hook_write = false;
-	return st_parameter;
-}
-
+#ifdef DYNAMIC
 #define LIBGFORTRAN "libgfortran.so.3"
 
 static void* libgfortran = NULL;
@@ -375,18 +343,23 @@ if (!sym##_real) \
 }
 
 extern "C" void _gfortran_st_write(st_parameter_dt * stp)
+#else
+extern "C" void __real__gfortran_st_write(st_parameter_dt * stp);
+extern "C" void __wrap__gfortran_st_write(st_parameter_dt * stp)
+#endif
 {
-	if (inside_hook_write)
-	{
-		st_parameter = (st_parameter_dt*)st_parameter_buffer;
-		memcpy(st_parameter, stp, 1024);
-		longjmp(get_st_parameter_jmp, 1);
-	}
-
+#ifdef DYNAMIC
 	bind_lib(LIBGFORTRAN);
 	bind_sym(libgfortran, _gfortran_st_write, void, st_parameter_dt*);
-	
 	_gfortran_st_write_real(stp);
+#else
+	__real__gfortran_st_write(stp);
+#endif
+	if (inside_hook_write)
+	{
+		callback(transaction, stp);
+		longjmp(get_st_parameter_jmp, 1);
+	}
 }
 
 extern "C" void _gfortran_st_write_done(st_parameter_dt *);
@@ -396,6 +369,38 @@ extern "C" void _gfortran_transfer_real_write(st_parameter_dt *, void *, int);
 static map<void*, string>* pfuncs = NULL, funcs;
 static map<string, void*> formats;
 static bool funcs_resolved = false;
+
+static void st_write_callback(transaction_t* t, st_parameter_dt* st_parameter)
+{
+	for (int i = 0, e = t->nitems; i != e; i++)
+	{
+		type_t type = *(type_t*)(t->buffer + t->offset);
+		t->offset += sizeof(type_t);
+		void* value = (void*)(t->buffer + t->offset);
+
+		switch (type)
+		{
+		case TYPE_INT :
+			_gfortran_transfer_integer_write(st_parameter, value, sizeof(int));
+			t->offset += sizeof(int);
+			break;
+		case TYPE_LONG_LONG :
+			_gfortran_transfer_integer_write(st_parameter, value, sizeof(long long));
+			t->offset += sizeof(long long);
+			break;
+		case TYPE_FLOAT :
+			_gfortran_transfer_real_write(st_parameter, value, sizeof(float));
+			t->offset += sizeof(float);
+			break;
+		case TYPE_DOUBLE :
+			_gfortran_transfer_real_write(st_parameter, value, sizeof(double));
+			t->offset += sizeof(double);
+			break;
+		}
+	}
+
+	_gfortran_st_write_done(st_parameter);
+}
 
 #ifdef __CUDACC__
 
@@ -534,109 +539,6 @@ static char* get_format(void* func, int format)
 	}
 	char* result = (char*)j->second;
 	return result;
-}
-
-extern "C" void asyncio_flush()
-{
-	// Transfer asyncio error status.
-	static bool* pdevice_error = NULL;
-	if (!pdevice_error)
-		CUDA_ERR_CHECK(cudaGetSymbolAddress((void**)&pdevice_error, asyncio_error));
-	bool host_error = true;
-	CUDA_ERR_CHECK(cudaMemcpy(&host_error, pdevice_error, sizeof(bool),
-		cudaMemcpyDeviceToHost));
-
-	// Do nothing, if error status is true.
-	if (host_error) return;
-
-	// Transfer asyncio buffer length.
-	static size_t* pdevice_length = NULL;
-	if (!pdevice_length)
-		CUDA_ERR_CHECK(cudaGetSymbolAddress((void**)&pdevice_length, asyncio_buffer_length));
-	size_t host_length = 0;
-	CUDA_ERR_CHECK(cudaMemcpy(&host_length, pdevice_length, sizeof(size_t),
-		cudaMemcpyDeviceToHost));
-	
-	// Do nothing, if buffer length is zero.
-	if (host_length == 0)
-	{
-		CUDA_ERR_CHECK(cudaMemset(pdevice_error, 0, sizeof(bool)));
-		return;
-	}
-	
-	// Transfer asyncio buffer contents.
-	static char* pdevice_buffer = NULL;
-	if (!pdevice_buffer)
-		CUDA_ERR_CHECK(cudaGetSymbolAddress((void**)&pdevice_buffer, asyncio_buffer));
-	vector<char> vhost_buffer;
-	vhost_buffer.resize(host_length);
-	char* host_buffer = &vhost_buffer[0];
-	CUDA_ERR_CHECK(cudaMemcpy(host_buffer, pdevice_buffer, host_length,
-		cudaMemcpyDeviceToHost));
-
-	for (int offset = 0; offset < host_length; )
-	{
-		transaction_t* t = (transaction_t*)host_buffer;
-		host_buffer += sizeof(transaction_t);
-		offset += sizeof(transaction_t);
-
-		if ((t->format == ASYNCIO_UNFORMATTED) && (t->unit == ASYNCIO_STDOUT))
-			st_parameter = get_st_parameter_default_unformatted();
-		else if ((t->format != ASYNCIO_UNFORMATTED) && (t->unit == ASYNCIO_STDOUT))
-		{
-			char* format = get_format(t->func, t->format);
-			st_parameter = get_st_parameter_default_formatted(format);
-		}
-		else if ((t->format == ASYNCIO_UNFORMATTED) && (t->unit != ASYNCIO_STDOUT))
-			st_parameter = get_st_parameter_unit_unformatted(t->unit);
-		else
-		{
-			char* format = get_format(t->func, t->format);
-			st_parameter = get_st_parameter_unit_formatted(t->unit, format);
-		}
-
-		_gfortran_st_write(st_parameter);
-	
-		for (int i = 0, e = t->nitems; i != e; i++)
-		{
-			type_t type = *(type_t*)host_buffer;
-			host_buffer += sizeof(type_t);
-			offset += sizeof(type_t);
-			void* value = (void*)host_buffer;
-			switch (type)
-			{
-			case TYPE_INT :
-				_gfortran_transfer_integer_write(st_parameter, value, sizeof(int));
-				host_buffer += sizeof(int);
-				offset += sizeof(int);
-				break;
-			case TYPE_LONG_LONG :
-				_gfortran_transfer_integer_write(st_parameter, value, sizeof(long long));
-				host_buffer += sizeof(long long);
-				offset += sizeof(long long);
-				break;
-			case TYPE_FLOAT :
-				_gfortran_transfer_real_write(st_parameter, value, sizeof(float));
-				host_buffer += sizeof(float);
-				offset += sizeof(float);
-				break;
-			case TYPE_DOUBLE :
-				_gfortran_transfer_real_write(st_parameter, value, sizeof(double));
-				host_buffer += sizeof(double);
-				offset += sizeof(double);
-				break;
-			}
-		}
-	
-		_gfortran_st_write_done(st_parameter);
-	}
-	
-	// Reset device pointer to 0, length to 0.
-	static char* pdevice_pbuffer = NULL;
-	if (!pdevice_pbuffer)
-		CUDA_ERR_CHECK(cudaGetSymbolAddress((void**)&pdevice_pbuffer, asyncio_pbuffer));
-	CUDA_ERR_CHECK(cudaMemset(pdevice_pbuffer, 0, sizeof(char*)));
-	CUDA_ERR_CHECK(cudaMemset(pdevice_length, 0, sizeof(size_t)));
 }
 
 extern "C" void CUDARTAPI __real___cudaRegisterVar(
@@ -820,8 +722,49 @@ static char* get_format(void* func, int format)
 	return result;
 }
 
+#endif // __CUDACC__
+
 extern "C" void asyncio_flush()
 {
+#ifdef __CUDACC__
+	// Transfer asyncio error status.
+	static bool* pdevice_error = NULL;
+	if (!pdevice_error)
+		CUDA_ERR_CHECK(cudaGetSymbolAddress((void**)&pdevice_error, asyncio_error));
+	bool host_error = true;
+	CUDA_ERR_CHECK(cudaMemcpy(&host_error, pdevice_error, sizeof(bool),
+		cudaMemcpyDeviceToHost));
+
+	// Do nothing, if error status is true.
+	if (host_error) return;
+
+	// Transfer asyncio buffer length.
+	static size_t* pdevice_length = NULL;
+	if (!pdevice_length)
+		CUDA_ERR_CHECK(cudaGetSymbolAddress((void**)&pdevice_length, asyncio_buffer_length));
+	size_t host_length = 0;
+	CUDA_ERR_CHECK(cudaMemcpy(&host_length, pdevice_length, sizeof(size_t),
+		cudaMemcpyDeviceToHost));
+	
+	// Do nothing, if buffer length is zero.
+	if (host_length == 0)
+	{
+		CUDA_ERR_CHECK(cudaMemset(pdevice_error, 0, sizeof(bool)));
+		return;
+	}
+	
+	// Transfer asyncio buffer contents.
+	static char* pdevice_buffer = NULL;
+	if (!pdevice_buffer)
+		CUDA_ERR_CHECK(cudaGetSymbolAddress((void**)&pdevice_buffer, asyncio_buffer));
+	vector<char> vhost_buffer;
+	vhost_buffer.resize(host_length);
+	char* host_buffer = &vhost_buffer[0];
+	CUDA_ERR_CHECK(cudaMemcpy(host_buffer, pdevice_buffer, host_length,
+		cudaMemcpyDeviceToHost));
+
+	for (int offset = 0; offset < host_length; )
+#else
 	// Do nothing, if error status is true.
 	if (asyncio_error)
 	{
@@ -830,59 +773,64 @@ extern "C" void asyncio_flush()
 	}
 
 	for (int offset = 0; offset < asyncio_buffer_length; )
+#endif
+
 	{
+#ifdef __CUDACC__
+		transaction_t* t = (transaction_t*)(host_buffer + offset);
+#else
 		transaction_t* t = (transaction_t*)(asyncio_buffer + offset);
+#endif
 		offset += sizeof(transaction_t);
+		t->offset = offset;
+#ifdef __CUDACC__
+		t->buffer = host_buffer;
+#else
+		t->buffer = asyncio_buffer;
+#endif
+		inside_hook_write = true;
+		callback = st_write_callback;
+		transaction = t;
 
 		if ((t->format == ASYNCIO_UNFORMATTED) && (t->unit == ASYNCIO_STDOUT))
-			st_parameter = get_st_parameter_default_unformatted();
+		{
+			int get_st_parameter_val = setjmp(get_st_parameter_jmp);
+			if (!get_st_parameter_val) asyncio_hook_write_default_unformatted();
+		}
 		else if ((t->format != ASYNCIO_UNFORMATTED) && (t->unit == ASYNCIO_STDOUT))
 		{
 			char* format = get_format(t->func, t->format);
-			st_parameter = get_st_parameter_default_formatted(format);
+			int get_st_parameter_val = setjmp(get_st_parameter_jmp);
+			if (!get_st_parameter_val) asyncio_hook_write_default_formatted(strlen(format), format);
 		}
 		else if ((t->format == ASYNCIO_UNFORMATTED) && (t->unit != ASYNCIO_STDOUT))
-			st_parameter = get_st_parameter_unit_unformatted(t->unit);
+		{
+			int get_st_parameter_val = setjmp(get_st_parameter_jmp);
+			if (!get_st_parameter_val) asyncio_hook_write_unit_unformatted(t->unit);
+		}
 		else
 		{
 			char* format = get_format(t->func, t->format);
-			st_parameter = get_st_parameter_unit_formatted(t->unit, format);
+			int get_st_parameter_val = setjmp(get_st_parameter_jmp);
+			if (!get_st_parameter_val) asyncio_hook_write_unit_formatted(t->unit, strlen(format), format);
 		}
 
-		_gfortran_st_write(st_parameter);
-	
-		for (int i = 0, e = t->nitems; i != e; i++)
-		{
-			type_t type = *(type_t*)(asyncio_buffer + offset);
-			offset += sizeof(type_t);
-			void* value = (void*)(asyncio_buffer + offset);
-			switch (type)
-			{
-			case TYPE_INT :
-				_gfortran_transfer_integer_write(st_parameter, value, sizeof(int));
-				offset += sizeof(int);
-				break;
-			case TYPE_LONG_LONG :
-				_gfortran_transfer_integer_write(st_parameter, value, sizeof(long long));
-				offset += sizeof(long long);
-				break;
-			case TYPE_FLOAT :
-				_gfortran_transfer_real_write(st_parameter, value, sizeof(float));
-				offset += sizeof(float);
-				break;
-			case TYPE_DOUBLE :
-				_gfortran_transfer_real_write(st_parameter, value, sizeof(double));
-				offset += sizeof(double);
-				break;
-			}
-		}
-	
-		_gfortran_st_write_done(st_parameter);
+		inside_hook_write = false;
+
+		offset = t->offset;
 	}
-	
+
+#ifdef __CUDACC__
+	// Reset device pointer to 0, length to 0.
+	static char* pdevice_pbuffer = NULL;
+	if (!pdevice_pbuffer)
+		CUDA_ERR_CHECK(cudaGetSymbolAddress((void**)&pdevice_pbuffer, asyncio_pbuffer));
+	CUDA_ERR_CHECK(cudaMemset(pdevice_pbuffer, 0, sizeof(char*)));
+	CUDA_ERR_CHECK(cudaMemset(pdevice_length, 0, sizeof(size_t)));
+#else	
 	// Reset device pointer to 0, length to 0.
 	asyncio_pbuffer = NULL;
 	asyncio_buffer_length = 0;
+#endif
 }
 
-#endif // __CUDACC__
