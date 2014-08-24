@@ -30,11 +30,21 @@ struct transaction_t
 enum type_t
 {
 	TYPE_INT,
+	TYPE_INT_1D,
+	TYPE_INT_2D,
 	TYPE_LONG_LONG,
 	TYPE_FLOAT,
+	TYPE_FLOAT_1D,
 	TYPE_DOUBLE,
+	TYPE_DOUBLE_1D,
+	TYPE_DOUBLE_2D,
+	TYPE_DOUBLE_3D,
+	TYPE_DOUBLE_4D,
 	TYPE_BOOLEAN,
-	TYPE_CHAR
+	TYPE_BOOLEAN_1D,
+	TYPE_CHAR,
+	TYPE_CHAR_1D,
+	TYPE_CHAR_2D
 };
 
 #ifdef __CUDACC__
@@ -308,6 +318,216 @@ extern "C" DEVICE void asyncio_write_char_c(char* val, int length)
 	t_curr_nitems++;
 }
 
+extern "C" DEVICE void asyncio_write_char_array1d_c(char** val, int dim_1, int* lengths)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	printf("ERROR: not implemented\n");
+	asyncio_error = true;
+	trap();
+}
+
+extern "C" DEVICE void asyncio_write_char_array2d_c(char** val, int dim_1, int dim_2, int* lengths)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	printf("ERROR: not implemented\n");
+	asyncio_error = true;
+	trap();
+}
+
+extern "C" DEVICE void asyncio_write_logical_array1d_c(bool* val, int dim_1)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = TYPE_BOOLEAN_1D;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, val, sizeof(bool) * dim_1);
+	asyncio_pbuffer += sizeof(bool) * dim_1;
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_integer_array1d_c(int* val, int dim_1)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = TYPE_INT_1D;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, val, sizeof(int) * dim_1);
+	asyncio_pbuffer += sizeof(int) * dim_1;
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_integer_array2d_c(int* val, int dim_1, int dim_2)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = TYPE_INT_2D;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &dim_2, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, val, sizeof(int) * dim_1 * dim_2);
+	asyncio_pbuffer += sizeof(int) * dim_1 * dim_2;
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_float_array1d_c(float* val, int dim_1)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = TYPE_FLOAT_1D;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, val, sizeof(float) * dim_1);
+	asyncio_pbuffer += sizeof(float) * dim_1;
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_double_array1d_c(double* val, int dim_1)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = TYPE_DOUBLE_1D;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, val, sizeof(double) * dim_1);
+	asyncio_pbuffer += sizeof(double) * dim_1;
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_double_array2d_c(double* val, int dim_1, int dim_2)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = TYPE_DOUBLE_2D;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &dim_2, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, val, sizeof(double) * dim_1 * dim_2);
+	asyncio_pbuffer += sizeof(double) * dim_1 * dim_2;
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_double_array3d_c(double* val, int dim_1, int dim_2, int dim_3)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = TYPE_DOUBLE_3D;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &dim_2, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &dim_3, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, val, sizeof(double) * dim_1 * dim_2 * dim_3);
+	asyncio_pbuffer += sizeof(double) * dim_1 * dim_2 * dim_3;
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_double_array4d_c(double* val, int dim_1, int dim_2, int dim_3, int dim_4)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = TYPE_DOUBLE_3D;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &dim_2, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &dim_3, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &dim_4, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, val, sizeof(double) * dim_1 * dim_2 * dim_3 * dim_4);
+	asyncio_pbuffer += sizeof(double) * dim_1 * dim_2 * dim_3 * dim_4;
+	t_curr_nitems++;
+}
+
 extern "C" void asyncio_flush();
 
 extern "C" DEVICE void asyncio_end()
@@ -349,13 +569,24 @@ extern "C" void asyncio_hook_write_default_formatted(size_t, char*);
 extern "C" void asyncio_hook_write_unit_unformatted(int);
 extern "C" void asyncio_hook_write_unit_formatted(int, size_t, char*);
 
+extern "C" void asyncio_hook_write_integer_array_1d(void*, int);
+extern "C" void asyncio_hook_write_integer_array_2d(void*, int, int);
+extern "C" void asyncio_hook_write_float_array_1d(void*, int);
+extern "C" void asyncio_hook_write_double_array_1d(void*, int);
+extern "C" void asyncio_hook_write_double_array_2d(void*, int, int);
+extern "C" void asyncio_hook_write_double_array_3d(void*, int, int, int);
+extern "C" void asyncio_hook_write_double_array_4d(void*, int, int, int, int);
+extern "C" void asyncio_hook_write_boolean_array_1d(void*, int);
+
 static bool inside_hook_write = false;
+static bool inside_hook_write_array = false;
 
 static jmp_buf get_st_parameter_jmp;
 
 typedef void (*st_write_callback_t)(transaction_t*, st_parameter_dt*);
 static st_write_callback_t callback;
 static transaction_t* transaction;
+static st_parameter_dt* st_parameter = NULL;
 
 #ifdef DYNAMIC
 #define LIBGFORTRAN "libgfortran.so.3"
@@ -392,6 +623,11 @@ extern "C" void __real__gfortran_st_write(st_parameter_dt * stp);
 extern "C" void __wrap__gfortran_st_write(st_parameter_dt * stp)
 #endif
 {
+	// In case of array writing hook, we discard _gfortran_st_write
+	// completely.
+	if (inside_hook_write_array)
+		return;
+
 #ifdef DYNAMIC
 	bind_lib(LIBGFORTRAN);
 	bind_sym(libgfortran, _gfortran_st_write, void, st_parameter_dt*);
@@ -401,12 +637,54 @@ extern "C" void __wrap__gfortran_st_write(st_parameter_dt * stp)
 #endif
 	if (inside_hook_write)
 	{
+		st_parameter = stp;
 		callback(transaction, stp);
 		longjmp(get_st_parameter_jmp, 1);
 	}
 }
 
-extern "C" void _gfortran_st_write_done(st_parameter_dt *);
+extern "C" void _gfortran_st_write_done(st_parameter_dt * stp);
+#ifdef DYNAMIC
+extern "C" void _gfortran_st_write_done(st_parameter_dt * stp)
+#else
+extern "C" void __real__gfortran_st_write_done(st_parameter_dt * stp);
+extern "C" void __wrap__gfortran_st_write_done(st_parameter_dt * stp)
+#endif
+{
+	// In case of array writing hook, we discard _gfortran_st_write_done
+	// completely.
+	if (inside_hook_write_array)
+		return;
+
+#ifdef DYNAMIC
+	bind_lib(LIBGFORTRAN);
+	bind_sym(libgfortran, _gfortran_st_write_done, void, st_parameter_dt*);
+	_gfortran_st_write_done_real(stp);
+#else
+	__real__gfortran_st_write_done(stp);
+#endif
+}
+
+#ifdef DYNAMIC
+extern "C" void _gfortran_transfer_array_write(st_parameter_dt* stp, void* desc, int kind, size_t charlen)
+#else
+extern "C" void __real__gfortran_transfer_array_write(st_parameter_dt* stp, void* desc, int kind, size_t charlen);
+extern "C" void __wrap__gfortran_transfer_array_write(st_parameter_dt* stp, void* desc, int kind, size_t charlen)
+#endif
+{
+	// In case of array writing hook, we use our own st_parameter
+	if (inside_hook_write_array)
+		stp = st_parameter;
+
+#ifdef DYNAMIC
+	bind_lib(LIBGFORTRAN);
+	bind_sym(libgfortran, _gfortran_transfer_array_write, void, st_parameter_dt*, void*, int, size_t);
+	_gfortran_transfer_array_write_real(stp, desc, kind, charlen);
+#else
+	__real__gfortran_transfer_array_write(stp, desc, kind, charlen);
+#endif
+}
+
 extern "C" void _gfortran_transfer_integer_write(st_parameter_dt *, void *, int);
 extern "C" void _gfortran_transfer_real_write(st_parameter_dt *, void *, int);
 extern "C" void _gfortran_transfer_logical_write(st_parameter_dt *, void *, int);
@@ -430,6 +708,28 @@ static void st_write_callback(transaction_t* t, st_parameter_dt* st_parameter)
 			_gfortran_transfer_integer_write(st_parameter, value, sizeof(int));
 			t->offset += sizeof(int);
 			break;
+		case TYPE_INT_1D :
+			{
+				int* length = (int*)value;
+				t->offset += sizeof(int);
+				value = (void*)(t->buffer + t->offset);
+				inside_hook_write_array = true;
+				asyncio_hook_write_integer_array_1d(value, length[0]);
+				inside_hook_write_array = false;
+				t->offset += sizeof(int) * length[0];
+			}
+			break;
+		case TYPE_INT_2D :
+			{
+				int* length = (int*)value;
+				t->offset += sizeof(int) * 2;
+				value = (void*)(t->buffer + t->offset);
+				inside_hook_write_array = true;
+				asyncio_hook_write_integer_array_2d(value, length[0], length[1]);
+				inside_hook_write_array = false;
+				t->offset += sizeof(int) * length[0] * length[1];
+			}
+			break;
 		case TYPE_LONG_LONG :
 			_gfortran_transfer_integer_write(st_parameter, value, sizeof(long long));
 			t->offset += sizeof(long long);
@@ -438,13 +738,79 @@ static void st_write_callback(transaction_t* t, st_parameter_dt* st_parameter)
 			_gfortran_transfer_real_write(st_parameter, value, sizeof(float));
 			t->offset += sizeof(float);
 			break;
+		case TYPE_FLOAT_1D :
+			{
+				int* length = (int*)value;
+				t->offset += sizeof(int);
+				value = (void*)(t->buffer + t->offset);
+				inside_hook_write_array = true;
+				asyncio_hook_write_float_array_1d(value, length[0]);
+				inside_hook_write_array = false;
+				t->offset += sizeof(float) * length[0];
+			}
+			break;
 		case TYPE_DOUBLE :
 			_gfortran_transfer_real_write(st_parameter, value, sizeof(double));
 			t->offset += sizeof(double);
 			break;
+		case TYPE_DOUBLE_1D :
+			{
+				int* length = (int*)value;
+				t->offset += sizeof(int);
+				value = (void*)(t->buffer + t->offset);
+				inside_hook_write_array = true;
+				asyncio_hook_write_double_array_1d(value, length[0]);
+				inside_hook_write_array = false;
+				t->offset += sizeof(double) * length[0];
+			}
+			break;
+		case TYPE_DOUBLE_2D :
+			{
+				int* length = (int*)value;
+				t->offset += sizeof(int) * 2;
+				value = (void*)(t->buffer + t->offset);
+				inside_hook_write_array = true;
+				asyncio_hook_write_double_array_2d(value, length[0], length[1]);
+				inside_hook_write_array = false;
+				t->offset += sizeof(double) * length[0] * length[1];
+			}
+			break;
+		case TYPE_DOUBLE_3D :
+			{
+				int* length = (int*)value;
+				t->offset += sizeof(int) * 3;
+				value = (void*)(t->buffer + t->offset);
+				inside_hook_write_array = true;
+				asyncio_hook_write_double_array_3d(value, length[0], length[1], length[2]);
+				inside_hook_write_array = false;
+				t->offset += sizeof(double) * length[0] * length[1] * length[2];
+			}
+			break;
+		case TYPE_DOUBLE_4D :
+			{
+				int* length = (int*)value;
+				t->offset += sizeof(int) * 4;
+				value = (void*)(t->buffer + t->offset);
+				inside_hook_write_array = true;
+				asyncio_hook_write_double_array_4d(value, length[0], length[1], length[2], length[3]);
+				inside_hook_write_array = false;
+				t->offset += sizeof(double) * length[0] * length[1] * length[2] * length[3];
+			}
+			break;
 		case TYPE_BOOLEAN :
 			_gfortran_transfer_logical_write(st_parameter, value, sizeof(bool));
 			t->offset += sizeof(bool);
+			break;
+		case TYPE_BOOLEAN_1D :
+			{
+				int* length = (int*)value;
+				t->offset += sizeof(int);
+				value = (void*)(t->buffer + t->offset);
+				inside_hook_write_array = true;
+				asyncio_hook_write_boolean_array_1d(value, length[0]);
+				inside_hook_write_array = false;
+				t->offset += sizeof(bool) * length[0];
+			}
 			break;
 		case TYPE_CHAR :
 			{
@@ -455,8 +821,13 @@ static void st_write_callback(transaction_t* t, st_parameter_dt* st_parameter)
 				t->offset += sizeof(char) * length;
 			}
 			break;
+		case TYPE_CHAR_1D :
+		case TYPE_CHAR_2D :
+			fprintf(stderr, "ERROR: not implemented\n");
+			exit(1);
+			break;
 		default :
-			fprintf(stderr, "Unknown data type %d\n", type);
+			fprintf(stderr, "ERROR: Unknown data type %d\n", type);
 			exit(1);
 		}
 	}
