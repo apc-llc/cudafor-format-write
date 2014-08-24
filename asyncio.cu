@@ -78,20 +78,20 @@ extern "C" DEVICE void asyncio_begin_default_c(char unit, char format)
 #endif
 	if (t_curr)
 	{
-		printf("ERROR: Previous transaction has not been closed correctly\n");
+		printf("ASYNCIO ERROR: Previous transaction has not been closed correctly\n");
 		asyncio_error = true;
 		trap();
 	}
 
 	if (unit != '*')
 	{
-		printf("ERROR: Invalid unit specifier: %c\n", unit);
+		printf("ASYNCIO ERROR: Invalid unit specifier: %c\n", unit);
 		asyncio_error = true;
 		trap();
 	}
 	if (format != '*')
 	{
-		printf("ERROR: Invalid format specifier: %c\n", format);
+		printf("ASYNCIO ERROR: Invalid format specifier: %c\n", format);
 		asyncio_error = true;
 		trap();		
 	}
@@ -115,14 +115,14 @@ extern "C" DEVICE void asyncio_begin_default_format_c(int unit, char format)
 #endif
 	if (t_curr)
 	{
-		printf("ERROR: Previous transaction has not been closed correctly\n");
+		printf("ASYNCIO ERROR: Previous transaction has not been closed correctly\n");
 		asyncio_error = true;
 		trap();
 	}
 
 	if (format != '*')
 	{
-		printf("ERROR: Invalid format specifier: %c\n", format);
+		printf("ASYNCIO ERROR: Invalid format specifier: %c\n", format);
 		asyncio_error = true;
 		trap();		
 	}
@@ -146,14 +146,14 @@ extern "C" DEVICE void asyncio_begin_default_unit_c(char unit, void* func, int f
 #endif
 	if (t_curr)
 	{
-		printf("ERROR: Previous transaction has not been closed correctly\n");
+		printf("ASYNCIO ERROR: Previous transaction has not been closed correctly\n");
 		asyncio_error = true;
 		trap();
 	}
 
 	if (unit != '*')
 	{
-		printf("ERROR: Invalid unit specifier: %c\n", unit);
+		printf("ASYNCIO ERROR: Invalid unit specifier: %c\n", unit);
 		asyncio_error = true;
 		trap();
 	}
@@ -178,7 +178,7 @@ extern "C" DEVICE void asyncio_begin_c(int unit, void* func, int format)
 #endif
 	if (t_curr)
 	{
-		printf("ERROR: Previous transaction has not been closed correctly\n");
+		printf("ASYNCIO ERROR: Previous transaction has not been closed correctly\n");
 		asyncio_error = true;
 		trap();
 	}
@@ -203,7 +203,7 @@ extern "C" DEVICE void asyncio_write_integer_c(int val)
 #endif
 	if (!t_curr)
 	{
-		printf("ERROR: Attempted to write without an active transaction\n");
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
 		asyncio_error = true;
 		trap();
 	}
@@ -223,7 +223,7 @@ extern "C" DEVICE void asyncio_write_long_long_c(long long val)
 #endif
 	if (!t_curr)
 	{
-		printf("ERROR: Attempted to write without an active transaction\n");
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
 		asyncio_error = true;
 		trap();
 	}
@@ -243,7 +243,7 @@ extern "C" DEVICE void asyncio_write_float_c(float val)
 #endif
 	if (!t_curr)
 	{
-		printf("ERROR: Attempted to write without an active transaction\n");
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
 		asyncio_error = true;
 		trap();
 	}
@@ -263,7 +263,7 @@ extern "C" DEVICE void asyncio_write_double_c(double val)
 #endif
 	if (!t_curr)
 	{
-		printf("ERROR: Attempted to write without an active transaction\n");
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
 		asyncio_error = true;
 		trap();
 	}
@@ -283,7 +283,7 @@ extern "C" DEVICE void asyncio_write_logical_c(bool val)
 #endif
 	if (!t_curr)
 	{
-		printf("ERROR: Attempted to write without an active transaction\n");
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
 		asyncio_error = true;
 		trap();
 	}
@@ -303,7 +303,7 @@ extern "C" DEVICE void asyncio_write_char_c(char* val, int length)
 #endif
 	if (!t_curr)
 	{
-		printf("ERROR: Attempted to write without an active transaction\n");
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
 		asyncio_error = true;
 		trap();
 	}
@@ -323,7 +323,7 @@ extern "C" DEVICE void asyncio_write_char_array1d_c(char** val, int dim_1, int* 
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
 #endif
-	printf("ERROR: not implemented\n");
+	printf("ASYNCIO ERROR: not implemented\n");
 	asyncio_error = true;
 	trap();
 }
@@ -333,7 +333,7 @@ extern "C" DEVICE void asyncio_write_char_array2d_c(char** val, int dim_1, int d
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
 #endif
-	printf("ERROR: not implemented\n");
+	printf("ASYNCIO ERROR: not implemented\n");
 	asyncio_error = true;
 	trap();
 }
@@ -345,7 +345,7 @@ extern "C" DEVICE void asyncio_write_logical_array1d_c(bool* val, int dim_1)
 #endif
 	if (!t_curr)
 	{
-		printf("ERROR: Attempted to write without an active transaction\n");
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
 		asyncio_error = true;
 		trap();
 	}
@@ -367,7 +367,7 @@ extern "C" DEVICE void asyncio_write_integer_array1d_c(int* val, int dim_1)
 #endif
 	if (!t_curr)
 	{
-		printf("ERROR: Attempted to write without an active transaction\n");
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
 		asyncio_error = true;
 		trap();
 	}
@@ -389,7 +389,7 @@ extern "C" DEVICE void asyncio_write_integer_array2d_c(int* val, int dim_1, int 
 #endif
 	if (!t_curr)
 	{
-		printf("ERROR: Attempted to write without an active transaction\n");
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
 		asyncio_error = true;
 		trap();
 	}
@@ -413,7 +413,7 @@ extern "C" DEVICE void asyncio_write_float_array1d_c(float* val, int dim_1)
 #endif
 	if (!t_curr)
 	{
-		printf("ERROR: Attempted to write without an active transaction\n");
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
 		asyncio_error = true;
 		trap();
 	}
@@ -435,7 +435,7 @@ extern "C" DEVICE void asyncio_write_double_array1d_c(double* val, int dim_1)
 #endif
 	if (!t_curr)
 	{
-		printf("ERROR: Attempted to write without an active transaction\n");
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
 		asyncio_error = true;
 		trap();
 	}
@@ -457,7 +457,7 @@ extern "C" DEVICE void asyncio_write_double_array2d_c(double* val, int dim_1, in
 #endif
 	if (!t_curr)
 	{
-		printf("ERROR: Attempted to write without an active transaction\n");
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
 		asyncio_error = true;
 		trap();
 	}
@@ -481,7 +481,7 @@ extern "C" DEVICE void asyncio_write_double_array3d_c(double* val, int dim_1, in
 #endif
 	if (!t_curr)
 	{
-		printf("ERROR: Attempted to write without an active transaction\n");
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
 		asyncio_error = true;
 		trap();
 	}
@@ -507,7 +507,7 @@ extern "C" DEVICE void asyncio_write_double_array4d_c(double* val, int dim_1, in
 #endif
 	if (!t_curr)
 	{
-		printf("ERROR: Attempted to write without an active transaction\n");
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
 		asyncio_error = true;
 		trap();
 	}
@@ -537,7 +537,7 @@ extern "C" DEVICE void asyncio_end()
 #endif
 	if (!t_curr)
 	{
-		printf("ERROR: Attempted to end without an active transaction\n");
+		printf("ASYNCIO ERROR: Attempted to end without an active transaction\n");
 		asyncio_error = true;
 		trap();
 	}
@@ -823,11 +823,11 @@ static void st_write_callback(transaction_t* t, st_parameter_dt* st_parameter)
 			break;
 		case TYPE_CHAR_1D :
 		case TYPE_CHAR_2D :
-			fprintf(stderr, "ERROR: not implemented\n");
+			fprintf(stderr, "ASYNCIO ERROR: not implemented\n");
 			exit(1);
 			break;
 		default :
-			fprintf(stderr, "ERROR: Unknown data type %d\n", type);
+			fprintf(stderr, "ASYNCIO ERROR: Unknown data type %d\n", type);
 			exit(1);
 		}
 	}
@@ -958,7 +958,7 @@ static char* get_format(void* func, int format)
 	map<void*, string>::iterator i = funcs.find((void*)func);
 	if (i == funcs.end())
 	{
-		fprintf(stderr, "ERROR: Unknown function @ %p\n", (void*)func);
+		fprintf(stderr, "ASYNCIO ERROR: Unknown function @ %p\n", (void*)func);
 		exit(1);
 	}
 	stringstream svarname;
@@ -967,7 +967,7 @@ static char* get_format(void* func, int format)
 	map<string, void*>::iterator j = formats.find(varname);
 	if (j == formats.end())
 	{
-		fprintf(stderr, "ERROR: Undefined format spec \"%s\"\n", varname.c_str());
+		fprintf(stderr, "ASYNCIO ERROR: Undefined format spec \"%s\"\n", varname.c_str());
 		exit(1);
 	}
 	char* result = (char*)j->second;
@@ -1139,7 +1139,7 @@ static char* get_format(void* func, int format)
 	map<void*, string>::iterator i = funcs.find((void*)func);
 	if (i == funcs.end())
 	{
-		fprintf(stderr, "ERROR: Unknown function @ %p\n", (void*)func);
+		fprintf(stderr, "ASYNCIO ERROR: Unknown function @ %p\n", (void*)func);
 		exit(1);
 	}
 	stringstream svarname;
@@ -1148,7 +1148,7 @@ static char* get_format(void* func, int format)
 	map<string, void*>::iterator j = formats.find(varname);
 	if (j == formats.end())
 	{
-		fprintf(stderr, "ERROR: Undefined format spec \"%s\"\n", varname.c_str());
+		fprintf(stderr, "ASYNCIO ERROR: Undefined format spec \"%s\"\n", varname.c_str());
 		exit(1);
 	}
 	char* result = (char*)j->second;
