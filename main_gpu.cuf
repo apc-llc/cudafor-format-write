@@ -4,14 +4,14 @@ use asyncio_gpu
 call kernel1<<<1,1>>>()
 call cudaDeviceSynchronize()
 
-open(3,file='filename',form='unformatted',status='unknown')
+call asyncio_open(3,file='filename',form='unformatted',status='unknown')
 
 call kernel2<<<1,1>>>()
 call cudaDeviceSynchronize()
 
 call asyncio_flush()
 
-close(3)
+call asyncio_close(3)
 
 end program test
 
