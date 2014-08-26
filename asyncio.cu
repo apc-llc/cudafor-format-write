@@ -12,8 +12,9 @@
 #include <unistd.h>
 
 #define ASYNCIO_BUFFER_LENGTH (1024 * 1024 * 16)
-#define ASYNCIO_STDOUT -1
-#define ASYNCIO_UNFORMATTED -1
+#define ASYNCIO_DEFAULT_UNIT -1
+#define ASYNCIO_DEFAULT_FORMAT -1
+#define ASYNCIO_UNFORMATTED -2
 
 using namespace std;
 
@@ -71,7 +72,7 @@ using namespace NAMESPACE;
 
 // On GPU all I/O routines work with thread 0 only.
 
-extern "C" DEVICE void asyncio_begin_default_c(char unit, char format)
+extern "C" DEVICE void asyncio_begin_default_unit_default_format_c(char unit, char format)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -99,8 +100,8 @@ extern "C" DEVICE void asyncio_begin_default_c(char unit, char format)
 	if (!asyncio_pbuffer) asyncio_pbuffer = asyncio_buffer;
 
 	transaction_t t;
-	t.unit = ASYNCIO_STDOUT;
-	t.format = ASYNCIO_UNFORMATTED;
+	t.unit = ASYNCIO_DEFAULT_UNIT;
+	t.format = ASYNCIO_DEFAULT_FORMAT;
 	t_curr_nitems = 0;
 	
 	memcpy(asyncio_pbuffer, &t, sizeof(transaction_t));
@@ -108,7 +109,7 @@ extern "C" DEVICE void asyncio_begin_default_c(char unit, char format)
 	asyncio_pbuffer += sizeof(transaction_t);
 }
 
-extern "C" DEVICE void asyncio_begin_default_format_c(int unit, char format)
+extern "C" DEVICE void asyncio_begin_unit_default_format_c(int unit, char format)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -131,6 +132,30 @@ extern "C" DEVICE void asyncio_begin_default_format_c(int unit, char format)
 
 	transaction_t t;
 	t.unit = unit;
+	t.format = ASYNCIO_DEFAULT_FORMAT;
+	t_curr_nitems = 0;
+	
+	memcpy(asyncio_pbuffer, &t, sizeof(transaction_t));
+	t_curr = (transaction_t*)asyncio_pbuffer;
+	asyncio_pbuffer += sizeof(transaction_t);
+}
+
+extern "C" DEVICE void asyncio_begin_unit_unformatted_c(int unit)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (t_curr)
+	{
+		printf("ASYNCIO ERROR: Previous transaction has not been closed correctly\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	if (!asyncio_pbuffer) asyncio_pbuffer = asyncio_buffer;
+
+	transaction_t t;
+	t.unit = unit;
 	t.format = ASYNCIO_UNFORMATTED;
 	t_curr_nitems = 0;
 	
@@ -139,7 +164,7 @@ extern "C" DEVICE void asyncio_begin_default_format_c(int unit, char format)
 	asyncio_pbuffer += sizeof(transaction_t);
 }
 
-extern "C" DEVICE void asyncio_begin_default_unit_c(char unit, void* func, int format)
+extern "C" DEVICE void asyncio_begin_default_unit_formatted_c(char unit, void* func, int format)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -161,7 +186,7 @@ extern "C" DEVICE void asyncio_begin_default_unit_c(char unit, void* func, int f
 	if (!asyncio_pbuffer) asyncio_pbuffer = asyncio_buffer;
 
 	transaction_t t;
-	t.unit = ASYNCIO_STDOUT;
+	t.unit = ASYNCIO_DEFAULT_UNIT;
 	t.format = format;
 	t.func = func;
 	t_curr_nitems = 0;
@@ -171,7 +196,7 @@ extern "C" DEVICE void asyncio_begin_default_unit_c(char unit, void* func, int f
 	asyncio_pbuffer += sizeof(transaction_t);
 }
 
-extern "C" DEVICE void asyncio_begin_c(int unit, void* func, int format)
+extern "C" DEVICE void asyncio_begin_unit_formatted_c(int unit, void* func, int format)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -564,9 +589,10 @@ extern "C" DEVICE void asyncio_end()
 
 struct st_parameter_dt;
 
-extern "C" void asyncio_hook_write_default_unformatted();
-extern "C" void asyncio_hook_write_default_formatted(size_t, char*);
+extern "C" void asyncio_hook_write_default_unit_default_format();
+extern "C" void asyncio_hook_write_default_unit_formatted(size_t, char*);
 extern "C" void asyncio_hook_write_unit_unformatted(int);
+extern "C" void asyncio_hook_write_unit_default_format(int);
 extern "C" void asyncio_hook_write_unit_formatted(int, size_t, char*);
 
 extern "C" void asyncio_hook_write_integer_array_1d(void*, int);
@@ -1225,18 +1251,23 @@ extern "C" void asyncio_flush()
 		callback = st_write_callback;
 		transaction = t;
 
-		if ((t->format == ASYNCIO_UNFORMATTED) && (t->unit == ASYNCIO_STDOUT))
+		if ((t->format == ASYNCIO_DEFAULT_FORMAT) && (t->unit == ASYNCIO_DEFAULT_UNIT))
 		{
 			int get_st_parameter_val = setjmp(get_st_parameter_jmp);
-			if (!get_st_parameter_val) asyncio_hook_write_default_unformatted();
+			if (!get_st_parameter_val) asyncio_hook_write_default_unit_default_format();
 		}
-		else if ((t->format != ASYNCIO_UNFORMATTED) && (t->unit == ASYNCIO_STDOUT))
+		else if ((t->format != ASYNCIO_DEFAULT_FORMAT) && (t->unit == ASYNCIO_DEFAULT_UNIT))
 		{
 			char* format = get_format(t->func, t->format);
 			int get_st_parameter_val = setjmp(get_st_parameter_jmp);
-			if (!get_st_parameter_val) asyncio_hook_write_default_formatted(strlen(format), format);
+			if (!get_st_parameter_val) asyncio_hook_write_default_unit_formatted(strlen(format), format);
 		}
-		else if ((t->format == ASYNCIO_UNFORMATTED) && (t->unit != ASYNCIO_STDOUT))
+		else if ((t->format == ASYNCIO_DEFAULT_FORMAT) && (t->unit != ASYNCIO_DEFAULT_UNIT))
+		{
+			int get_st_parameter_val = setjmp(get_st_parameter_jmp);
+			if (!get_st_parameter_val) asyncio_hook_write_unit_default_format(t->unit);
+		}
+		else if ((t->format == ASYNCIO_UNFORMATTED) && (t->unit != ASYNCIO_DEFAULT_UNIT))
 		{
 			int get_st_parameter_val = setjmp(get_st_parameter_jmp);
 			if (!get_st_parameter_val) asyncio_hook_write_unit_unformatted(t->unit);

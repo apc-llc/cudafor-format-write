@@ -56,7 +56,7 @@
   call asyncio_write(i8)
   call asyncio_end()
 
-  call asyncio_begin(3,'*')
+  call asyncio_begin(3)
   call asyncio_write(arr(length) + 2)
   call asyncio_write(arr(length / 4))
   call asyncio_end()
