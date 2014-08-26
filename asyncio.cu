@@ -103,7 +103,12 @@ extern "C" DEVICE void asyncio_begin_default_unit_default_format_c(char unit, ch
 	transaction_t t;
 	t.unit = ASYNCIO_DEFAULT_UNIT;
 	t.format = ASYNCIO_DEFAULT_FORMAT;
+#ifdef __CUDACC__
+	*iostat = 0;
+	t.iostat = NULL;
+#else
 	t.iostat = iostat;
+#endif
 	t_curr_nitems = 0;
 	
 	memcpy(asyncio_pbuffer, &t, sizeof(transaction_t));
@@ -135,7 +140,12 @@ extern "C" DEVICE void asyncio_begin_unit_default_format_c(int unit, char format
 	transaction_t t;
 	t.unit = unit;
 	t.format = ASYNCIO_DEFAULT_FORMAT;
+#ifdef __CUDACC__
+	*iostat = 0;
+	t.iostat = NULL;
+#else
 	t.iostat = iostat;
+#endif
 	t_curr_nitems = 0;
 	
 	memcpy(asyncio_pbuffer, &t, sizeof(transaction_t));
@@ -160,7 +170,12 @@ extern "C" DEVICE void asyncio_begin_unit_unformatted_c(int unit, int* iostat)
 	transaction_t t;
 	t.unit = unit;
 	t.format = ASYNCIO_UNFORMATTED;
-	t.iostat = iostat;
+#ifdef __CUDACC__
+        *iostat = 0;
+        t.iostat = NULL;
+#else
+        t.iostat = iostat;
+#endif
 	t_curr_nitems = 0;
 	
 	memcpy(asyncio_pbuffer, &t, sizeof(transaction_t));
@@ -193,7 +208,12 @@ extern "C" DEVICE void asyncio_begin_default_unit_formatted_c(char unit, void* f
 	t.unit = ASYNCIO_DEFAULT_UNIT;
 	t.format = format;
 	t.func = func;
-	t.iostat = iostat;
+#ifdef __CUDACC__
+        *iostat = 0;
+        t.iostat = NULL;
+#else
+        t.iostat = iostat;
+#endif
 	t_curr_nitems = 0;
 	
 	memcpy(asyncio_pbuffer, &t, sizeof(transaction_t));
@@ -219,7 +239,12 @@ extern "C" DEVICE void asyncio_begin_unit_formatted_c(int unit, void* func, int 
 	t.unit = unit;
 	t.format = format;
 	t.func = func;
-	t.iostat = iostat;
+#ifdef __CUDACC__
+        *iostat = 0;
+        t.iostat = NULL;
+#else
+        t.iostat = iostat;
+#endif
 	t_curr_nitems = 0;
 	
 	memcpy(asyncio_pbuffer, &t, sizeof(transaction_t));
@@ -1257,6 +1282,12 @@ extern "C" void asyncio_flush()
 		callback = st_write_callback;
 		transaction = t;
 
+#ifdef __CUDACC__
+                // On GPU iostat does not make sense, so we always use a dummy variable.
+                int iostat = 0;
+		t->iostat = &iostat;
+#endif
+
 		if ((t->format == ASYNCIO_DEFAULT_FORMAT) && (t->unit == ASYNCIO_DEFAULT_UNIT))
 		{
 			int get_st_parameter_val = setjmp(get_st_parameter_jmp);
@@ -1288,6 +1319,13 @@ extern "C" void asyncio_flush()
 		inside_hook_write = false;
 
 		offset = t->offset;
+#ifdef __CUDACC__
+		if (iostat != 0)
+		{
+			fprintf(stderr, "ASYNCIO ERROR: iostat returned %d\n", iostat);
+			exit(1);
+		}
+#endif
 	}
 
 #ifdef __CUDACC__
