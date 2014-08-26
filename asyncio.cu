@@ -26,6 +26,7 @@ struct transaction_t
 	int nitems;
 	int offset;
 	char* buffer;
+	int* iostat;
 };
 
 enum type_t
@@ -72,7 +73,7 @@ using namespace NAMESPACE;
 
 // On GPU all I/O routines work with thread 0 only.
 
-extern "C" DEVICE void asyncio_begin_default_unit_default_format_c(char unit, char format)
+extern "C" DEVICE void asyncio_begin_default_unit_default_format_c(char unit, char format, int* iostat)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -102,6 +103,7 @@ extern "C" DEVICE void asyncio_begin_default_unit_default_format_c(char unit, ch
 	transaction_t t;
 	t.unit = ASYNCIO_DEFAULT_UNIT;
 	t.format = ASYNCIO_DEFAULT_FORMAT;
+	t.iostat = iostat;
 	t_curr_nitems = 0;
 	
 	memcpy(asyncio_pbuffer, &t, sizeof(transaction_t));
@@ -109,7 +111,7 @@ extern "C" DEVICE void asyncio_begin_default_unit_default_format_c(char unit, ch
 	asyncio_pbuffer += sizeof(transaction_t);
 }
 
-extern "C" DEVICE void asyncio_begin_unit_default_format_c(int unit, char format)
+extern "C" DEVICE void asyncio_begin_unit_default_format_c(int unit, char format, int* iostat)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -133,6 +135,7 @@ extern "C" DEVICE void asyncio_begin_unit_default_format_c(int unit, char format
 	transaction_t t;
 	t.unit = unit;
 	t.format = ASYNCIO_DEFAULT_FORMAT;
+	t.iostat = iostat;
 	t_curr_nitems = 0;
 	
 	memcpy(asyncio_pbuffer, &t, sizeof(transaction_t));
@@ -140,7 +143,7 @@ extern "C" DEVICE void asyncio_begin_unit_default_format_c(int unit, char format
 	asyncio_pbuffer += sizeof(transaction_t);
 }
 
-extern "C" DEVICE void asyncio_begin_unit_unformatted_c(int unit)
+extern "C" DEVICE void asyncio_begin_unit_unformatted_c(int unit, int* iostat)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -157,6 +160,7 @@ extern "C" DEVICE void asyncio_begin_unit_unformatted_c(int unit)
 	transaction_t t;
 	t.unit = unit;
 	t.format = ASYNCIO_UNFORMATTED;
+	t.iostat = iostat;
 	t_curr_nitems = 0;
 	
 	memcpy(asyncio_pbuffer, &t, sizeof(transaction_t));
@@ -164,7 +168,7 @@ extern "C" DEVICE void asyncio_begin_unit_unformatted_c(int unit)
 	asyncio_pbuffer += sizeof(transaction_t);
 }
 
-extern "C" DEVICE void asyncio_begin_default_unit_formatted_c(char unit, void* func, int format)
+extern "C" DEVICE void asyncio_begin_default_unit_formatted_c(char unit, void* func, int format, int* iostat)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -189,6 +193,7 @@ extern "C" DEVICE void asyncio_begin_default_unit_formatted_c(char unit, void* f
 	t.unit = ASYNCIO_DEFAULT_UNIT;
 	t.format = format;
 	t.func = func;
+	t.iostat = iostat;
 	t_curr_nitems = 0;
 	
 	memcpy(asyncio_pbuffer, &t, sizeof(transaction_t));
@@ -196,7 +201,7 @@ extern "C" DEVICE void asyncio_begin_default_unit_formatted_c(char unit, void* f
 	asyncio_pbuffer += sizeof(transaction_t);
 }
 
-extern "C" DEVICE void asyncio_begin_unit_formatted_c(int unit, void* func, int format)
+extern "C" DEVICE void asyncio_begin_unit_formatted_c(int unit, void* func, int format, int* iostat)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -214,6 +219,7 @@ extern "C" DEVICE void asyncio_begin_unit_formatted_c(int unit, void* func, int 
 	t.unit = unit;
 	t.format = format;
 	t.func = func;
+	t.iostat = iostat;
 	t_curr_nitems = 0;
 	
 	memcpy(asyncio_pbuffer, &t, sizeof(transaction_t));
@@ -589,11 +595,11 @@ extern "C" DEVICE void asyncio_end()
 
 struct st_parameter_dt;
 
-extern "C" void asyncio_hook_write_default_unit_default_format();
-extern "C" void asyncio_hook_write_default_unit_formatted(size_t, char*);
-extern "C" void asyncio_hook_write_unit_unformatted(int);
-extern "C" void asyncio_hook_write_unit_default_format(int);
-extern "C" void asyncio_hook_write_unit_formatted(int, size_t, char*);
+extern "C" void asyncio_hook_write_default_unit_default_format(int*);
+extern "C" void asyncio_hook_write_default_unit_formatted(size_t, char*, int*);
+extern "C" void asyncio_hook_write_unit_unformatted(int, int*);
+extern "C" void asyncio_hook_write_unit_default_format(int, int*);
+extern "C" void asyncio_hook_write_unit_formatted(int, size_t, char*, int*);
 
 extern "C" void asyncio_hook_write_integer_array_1d(void*, int);
 extern "C" void asyncio_hook_write_integer_array_2d(void*, int, int);
@@ -1254,29 +1260,29 @@ extern "C" void asyncio_flush()
 		if ((t->format == ASYNCIO_DEFAULT_FORMAT) && (t->unit == ASYNCIO_DEFAULT_UNIT))
 		{
 			int get_st_parameter_val = setjmp(get_st_parameter_jmp);
-			if (!get_st_parameter_val) asyncio_hook_write_default_unit_default_format();
+			if (!get_st_parameter_val) asyncio_hook_write_default_unit_default_format(t->iostat);
 		}
 		else if ((t->format != ASYNCIO_DEFAULT_FORMAT) && (t->unit == ASYNCIO_DEFAULT_UNIT))
 		{
 			char* format = get_format(t->func, t->format);
 			int get_st_parameter_val = setjmp(get_st_parameter_jmp);
-			if (!get_st_parameter_val) asyncio_hook_write_default_unit_formatted(strlen(format), format);
+			if (!get_st_parameter_val) asyncio_hook_write_default_unit_formatted(strlen(format), format, t->iostat);
 		}
 		else if ((t->format == ASYNCIO_DEFAULT_FORMAT) && (t->unit != ASYNCIO_DEFAULT_UNIT))
 		{
 			int get_st_parameter_val = setjmp(get_st_parameter_jmp);
-			if (!get_st_parameter_val) asyncio_hook_write_unit_default_format(t->unit);
+			if (!get_st_parameter_val) asyncio_hook_write_unit_default_format(t->unit, t->iostat);
 		}
 		else if ((t->format == ASYNCIO_UNFORMATTED) && (t->unit != ASYNCIO_DEFAULT_UNIT))
 		{
 			int get_st_parameter_val = setjmp(get_st_parameter_jmp);
-			if (!get_st_parameter_val) asyncio_hook_write_unit_unformatted(t->unit);
+			if (!get_st_parameter_val) asyncio_hook_write_unit_unformatted(t->unit, t->iostat);
 		}
 		else
 		{
 			char* format = get_format(t->func, t->format);
 			int get_st_parameter_val = setjmp(get_st_parameter_jmp);
-			if (!get_st_parameter_val) asyncio_hook_write_unit_formatted(t->unit, strlen(format), format);
+			if (!get_st_parameter_val) asyncio_hook_write_unit_formatted(t->unit, strlen(format), format, t->iostat);
 		}
 
 		inside_hook_write = false;

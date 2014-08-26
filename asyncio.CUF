@@ -61,51 +61,56 @@
 #ifdef GPU
     attributes(device) &
 #endif
-    subroutine asyncio_begin_default_unit_default_format_c(unt, frmt) bind(C)
+    subroutine asyncio_begin_default_unit_default_format_c(unt, frmt, iostat) bind(C)
     use iso_c_binding
     implicit none
     character(c_char), value :: unt, frmt
+    integer(c_int), optional :: iostat
     end subroutine asyncio_begin_default_unit_default_format_c
 
 #ifdef GPU
     attributes(device) &
 #endif
-    subroutine asyncio_begin_unit_unformatted_c(unt) bind(C)
+    subroutine asyncio_begin_unit_unformatted_c(unt, iostat) bind(C)
     use iso_c_binding
     implicit none
     integer(c_int), value :: unt
+    integer(c_int), optional :: iostat
     end subroutine asyncio_begin_unit_unformatted_c
 
 #ifdef GPU
     attributes(device) &
 #endif
-    subroutine asyncio_begin_unit_default_format_c(unt, frmt) bind(C)
+    subroutine asyncio_begin_unit_default_format_c(unt, frmt, iostat) bind(C)
     use iso_c_binding
     implicit none
     integer(c_int), value :: unt
     character(c_char), value :: frmt
+    integer(c_int), optional :: iostat
     end subroutine asyncio_begin_unit_default_format_c
 
 #ifdef GPU
     attributes(device) &
 #endif
-    subroutine asyncio_begin_default_unit_formatted_c(unt, func, frmt) bind(C)
+    subroutine asyncio_begin_default_unit_formatted_c(unt, func, frmt, iostat) bind(C)
     use iso_c_binding
     implicit none
     character(c_char), value :: unt
     integer :: func
     integer(c_int), value :: frmt
+    integer(c_int), optional :: iostat
     end subroutine asyncio_begin_default_unit_formatted_c
 
 #ifdef GPU
     attributes(device) &
 #endif
-    subroutine asyncio_begin_unit_formatted_c(unt, func, frmt) bind(C)
+    subroutine asyncio_begin_unit_formatted_c(unt, func, frmt, iostat) bind(C)
     use iso_c_binding
     implicit none
     integer(c_int), value :: unt
     integer :: func
     integer(c_int), value :: frmt
+    integer(c_int), optional :: iostat
     end subroutine asyncio_begin_unit_formatted_c
 
 #ifdef GPU
@@ -281,56 +286,86 @@ contains
 #ifdef GPU
   attributes(device) &
 #endif
-  subroutine asyncio_begin_default_unit_default_format(unt, frmt)
+  subroutine asyncio_begin_default_unit_default_format(unt, frmt, iostat)
   use iso_c_binding
   implicit none
   character(c_char), value :: unt, frmt
-  call asyncio_begin_default_unit_default_format_c(unt, frmt)
+  integer(c_int), optional :: iostat
+  integer(c_int) :: iostat_dummy
+  if (present(iostat)) then
+    call asyncio_begin_default_unit_default_format_c(unt, frmt, iostat)
+  else
+    call asyncio_begin_default_unit_default_format_c(unt, frmt, iostat_dummy)
+  endif
   end subroutine asyncio_begin_default_unit_default_format
 
 #ifdef GPU
   attributes(device) &
 #endif
-  subroutine asyncio_begin_unit_unformatted(unt)
+  subroutine asyncio_begin_unit_unformatted(unt, iostat)
   use iso_c_binding
   implicit none
   integer(c_int), value :: unt
-  call asyncio_begin_unit_unformatted_c(unt)
+  integer(c_int), optional :: iostat
+  integer(c_int) :: iostat_dummy
+  if (present(iostat)) then
+    call asyncio_begin_unit_unformatted_c(unt, iostat)
+  else
+    call asyncio_begin_unit_unformatted_c(unt, iostat_dummy)
+  endif
   end subroutine asyncio_begin_unit_unformatted
 
 #ifdef GPU
   attributes(device) &
 #endif
-  subroutine asyncio_begin_unit_default_format(unt, frmt)
+  subroutine asyncio_begin_unit_default_format(unt, frmt, iostat)
   use iso_c_binding
   implicit none
   integer(c_int), value :: unt
   character(c_char), value :: frmt
-  call asyncio_begin_unit_default_format_c(unt, frmt)
+  integer(c_int), optional :: iostat
+  integer(c_int) :: iostat_dummy
+  if (present(iostat)) then
+    call asyncio_begin_unit_default_format_c(unt, frmt, iostat)
+  else
+    call asyncio_begin_unit_default_format_c(unt, frmt, iostat_dummy)
+  endif
   end subroutine asyncio_begin_unit_default_format
 
 #ifdef GPU
   attributes(device) &
 #endif
-  subroutine asyncio_begin_default_unit_formatted(unt, func, frmt)
+  subroutine asyncio_begin_default_unit_formatted(unt, func, frmt, iostat)
   use iso_c_binding
   implicit none
   character(c_char), value :: unt
   integer :: func
   integer(c_int), value :: frmt
-  call asyncio_begin_default_unit_formatted_c(unt, func, frmt)
+  integer(c_int), optional :: iostat
+  integer(c_int) :: iostat_dummy
+  if (present(iostat)) then
+    call asyncio_begin_default_unit_formatted_c(unt, func, frmt, iostat)
+  else
+    call asyncio_begin_default_unit_formatted_c(unt, func, frmt, iostat_dummy)
+  endif
   end subroutine asyncio_begin_default_unit_formatted
 
 #ifdef GPU
   attributes(device) &
 #endif
-  subroutine asyncio_begin_unit_formatted(unt, func, frmt)
+  subroutine asyncio_begin_unit_formatted(unt, func, frmt, iostat)
   use iso_c_binding
   implicit none
   integer(c_int), value :: unt
   integer :: func
   integer(c_int), value :: frmt
-  call asyncio_begin_unit_formatted_c(unt, func, frmt)
+  integer(c_int), optional :: iostat
+  integer(c_int) :: iostat_dummy
+  if (present(iostat)) then
+    call asyncio_begin_unit_formatted_c(unt, func, frmt, iostat)
+  else
+    call asyncio_begin_unit_formatted_c(unt, func, frmt, iostat_dummy)
+  endif
   end subroutine asyncio_begin_unit_formatted
 
 #ifdef GPU
