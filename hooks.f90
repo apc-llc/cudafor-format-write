@@ -32,7 +32,7 @@ end subroutine asyncio_endfile
 subroutine asyncio_backspace(unt)
   implicit none
   integer ::unt
-  endfile unt
+  backspace unt
 end subroutine asyncio_backspace
 
 subroutine asyncio_hook_write_default_unit_default_format(iost) bind(C)
