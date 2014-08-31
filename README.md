@@ -1,10 +1,10 @@
 # ASYNCIO -- support for formatted write in CUDA Fortran
 
-This package makes it possible to use an equivalent of `write` command from within CUDA Fortran kernels, with format and/or unit specified. By some reason, PGI never adds support for formatted writes (only `write(*,*)` is possible), however they are actively used in many legacy Fortran codes, therefore limiting porting onto GPUs.
+This package makes it possible to use an equivalent of `write` command from within CUDA Fortran kernels, with format and/or unit specified. By some reason, PGI never adds support for formatted writes (only `write(*,*)` is possible), greatly limiting GPU portability, as they are actively used in many legacy Fortran codes.
 
 ## Overview
 
-Since `write` command could not be overridden for standard types, the best bet is to create a runtime library with closely resembling interface. Thus, we've created the following API:
+Since `write` command could not be overridden for standard types, the best bet is to create a runtime library with a closely resembling interface. Thus, we've created the following API:
 
 ```
 call asyncio_begin('*','*')
