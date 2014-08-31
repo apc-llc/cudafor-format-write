@@ -4,7 +4,7 @@ This package makes it possible to use an equivalent of `write` command from with
 
 ## Overview
 
-Since `write` command could not be overridden for standard types, the best bet is to create a runtime library with a closely resembling interface. Thus, we've created the following API:
+Since `write` command could not be overridden for standard types, our best bet is to create a runtime library with a closely resembling interface. Thus, we've created the following API:
 
 ```
 call asyncio_begin('*','*')
@@ -34,7 +34,7 @@ Function handle `funcptr` has to be defined in a module visible to the caller on
 call asyncio_flush()
 ```
 
-Similarly to CUDA builtin `printf`, out API does not output anything from the running GPU kernel while it is executing (although, it's potentially possible to automatically flush the buffer to host and print it with higher granularity). Unlike builtin `printf`, flush is not being performed automatically. Instead, user has to call `asyncio_flush` explicitly.
+Similarly to CUDA builtin `printf`, our API does not output anything from the running GPU kernel while it is executing (although, it's potentially possible to automatically flush the buffer to host and print it with higher granularity). Unlike builtin `printf`, flush is not being performed automatically. Instead, user has to call `asyncio_flush` explicitly.
 
 Finally, ASYNCIO implements both GPU and host writes -- the same code could be executed on GPU and host.
 
