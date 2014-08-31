@@ -42,6 +42,8 @@ Finally, ASYNCIO implements both GPU and host writes -- the same code could be e
 
 The GPU part of ASYNCIO implementation is straight-forward: on device side data is getting serialized into large linear buffer. Host part is trickier, because we need to deserialize buffer contents according to the specified format. Instead of doing this explicitly, which would undoubtedly be a very large work, ASYNCIO simply deploys libgfortran's internal I/O runtime functions on the buffered data.
 
+For compatibility with its own writes, ASYNCIO also implements reads through libgfortran. The user has to refactor reads similarly to writes, if the reader program is not compiled by gfortran. Currently reads are supported on host only, however it seems to be possible to implement unformatted reads on GPU by reading the transaction buffer directly.
+
 ## Package contents
 
 This package contains 3 source files with the core functionality:
