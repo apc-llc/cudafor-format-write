@@ -11,6 +11,27 @@
     module procedure asyncio_begin_unit_default_format
     module procedure asyncio_begin_unit_formatted
   end interface asyncio_begin
+
+#ifndef GPU
+  interface asyncio_read
+    module procedure asyncio_read_integer
+    module procedure asyncio_read_long_long
+    module procedure asyncio_read_float
+    module procedure asyncio_read_double
+    module procedure asyncio_read_logical
+    module procedure asyncio_read_char
+    module procedure asyncio_read_char_array1d
+    module procedure asyncio_read_char_array2d
+    module procedure asyncio_read_logical_array1d
+    module procedure asyncio_read_integer_array1d
+    module procedure asyncio_read_integer_array2d
+    module procedure asyncio_read_float_array1d
+    module procedure asyncio_read_double_array1d
+    module procedure asyncio_read_double_array2d
+    module procedure asyncio_read_double_array3d
+    module procedure asyncio_read_double_array4d
+  end interface asyncio_read
+#endif
   
   interface asyncio_write
     module procedure asyncio_write_integer
@@ -57,6 +78,11 @@
     implicit none
     integer ::unit
   end subroutine asyncio_endfile
+
+  subroutine asyncio_backspace(unt)
+    implicit none
+    integer ::unt
+  end subroutine asyncio_backspace
 
 #ifdef GPU
     attributes(device) &
@@ -112,6 +138,115 @@
     integer(c_int), value :: frmt
     integer(c_int), optional :: iostat
     end subroutine asyncio_begin_unit_formatted_c
+
+    subroutine asyncio_read_integer_c(val) bind(C)
+    use iso_c_binding
+    implicit none
+    integer(c_int), value :: val
+    end subroutine asyncio_read_integer_c
+
+    subroutine asyncio_read_long_long_c(val) bind(C)
+    use iso_c_binding
+    implicit none
+    integer(c_long_long), value :: val
+    end subroutine asyncio_read_long_long_c
+
+    subroutine asyncio_read_float_c(val) bind(C)
+    use iso_c_binding
+    implicit none
+    real(c_float), value :: val
+    end subroutine asyncio_read_float_c
+
+    subroutine asyncio_read_double_c(val) bind(C)
+    use iso_c_binding
+    implicit none
+    real(c_double), value :: val
+    end subroutine asyncio_read_double_c
+
+    subroutine asyncio_read_logical_c(val) bind(C)
+    use iso_c_binding
+    implicit none
+    logical(c_bool), value :: val
+    end subroutine asyncio_read_logical_c
+
+    subroutine asyncio_read_char_c(val, length) bind(C)
+    use iso_c_binding
+    implicit none
+    character(c_char) :: val
+    integer(c_int), value :: length
+    end subroutine asyncio_read_char_c
+
+    subroutine asyncio_read_char_array1d_c(val, dim_1, lengths) bind(C)
+    use iso_c_binding
+    implicit none
+    integer(c_int), value :: dim_1
+    character(c_char) :: val(dim_1, *)
+    integer(c_int) :: lengths(dim_1)
+    end subroutine asyncio_read_char_array1d_c
+
+    subroutine asyncio_read_char_array2d_c(val, dim_1, dim_2, lengths) bind(C)
+    use iso_c_binding
+    implicit none
+    integer(c_int), value :: dim_1, dim_2
+    character(c_char) :: val(dim_1, dim_2, *)
+    integer(c_int) :: lengths(dim_1, dim_2)
+    end subroutine asyncio_read_char_array2d_c
+
+    subroutine asyncio_read_logical_array1d_c(val, dim_1) bind(C)
+    use iso_c_binding
+    implicit none
+    integer(c_int), value :: dim_1
+    logical :: val(dim_1)
+    end subroutine asyncio_read_logical_array1d_c
+
+    subroutine asyncio_read_integer_array1d_c(val, dim_1) bind(C)
+    use iso_c_binding
+    implicit none
+    integer(c_int), value :: dim_1
+    integer(c_int) :: val(dim_1)
+    end subroutine asyncio_read_integer_array1d_c
+
+    subroutine asyncio_read_integer_array2d_c(val, dim_1, dim_2) bind(C)
+    use iso_c_binding
+    implicit none
+    integer(c_int), value :: dim_1, dim_2
+    integer(c_int) :: val(dim_1,dim_2)
+    end subroutine asyncio_read_integer_array2d_c
+
+    subroutine asyncio_read_float_array1d_c(val, dim_1) bind(C)
+    use iso_c_binding
+    implicit none
+    integer(c_int), value :: dim_1
+    real(c_float) :: val(dim_1)
+    end subroutine asyncio_read_float_array1d_c
+
+    subroutine asyncio_read_double_array1d_c(val, dim_1) bind(C)
+    use iso_c_binding
+    implicit none
+    integer(c_int), value :: dim_1
+    real(c_double) :: val(dim_1)
+    end subroutine asyncio_read_double_array1d_c
+
+    subroutine asyncio_read_double_array2d_c(val, dim_1, dim_2) bind(C)
+    use iso_c_binding
+    implicit none
+    integer(c_int), value :: dim_1, dim_2
+    real(c_double) :: val(dim_1,dim_2)
+    end subroutine asyncio_read_double_array2d_c
+
+    subroutine asyncio_read_double_array3d_c(val, dim_1, dim_2, dim_3) bind(C)
+    use iso_c_binding
+    implicit none
+    integer(c_int), value :: dim_1, dim_2, dim_3
+    real(c_double) :: val(dim_1,dim_2,dim_3)
+    end subroutine asyncio_read_double_array3d_c
+
+    subroutine asyncio_read_double_array4d_c(val, dim_1, dim_2, dim_3, dim_4) bind(C)
+    use iso_c_binding
+    implicit none
+    integer(c_int), value :: dim_1, dim_2, dim_3, dim_4
+    real(c_double) :: val(dim_1,dim_2,dim_3,dim_4)
+    end subroutine asyncio_read_double_array4d_c
 
 #ifdef GPU
     attributes(device) &
@@ -367,6 +502,138 @@ contains
     call asyncio_begin_unit_formatted_c(unt, func, frmt, iostat_dummy)
   endif
   end subroutine asyncio_begin_unit_formatted
+
+  subroutine asyncio_read_integer(val)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: val
+  call asyncio_read_integer_c(val)
+  end subroutine asyncio_read_integer
+
+  subroutine asyncio_read_long_long(val)
+  use iso_c_binding
+  implicit none
+  integer(c_long_long), value :: val
+  call asyncio_write_long_long_c(val)
+  end subroutine asyncio_read_long_long
+
+  subroutine asyncio_read_float(val)
+  use iso_c_binding
+  implicit none
+  real(c_float), value :: val
+  call asyncio_read_float_c(val)
+  end subroutine asyncio_read_float
+
+  subroutine asyncio_read_double(val)
+  use iso_c_binding
+  implicit none
+  real(c_double), value :: val
+  call asyncio_read_double_c(val)
+  end subroutine asyncio_read_double
+
+  subroutine asyncio_read_logical(val)
+  use iso_c_binding
+  implicit none
+  logical(c_bool), value :: val
+  call asyncio_read_logical_c(val)
+  end subroutine asyncio_read_logical
+
+  subroutine asyncio_read_char(val)
+  use iso_c_binding
+  implicit none
+  character(len=*) :: val
+  call asyncio_read_char_c(val,len(val))
+  end subroutine asyncio_read_char
+
+  subroutine asyncio_read_char_array1d(val, dim_1)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim_1
+  character(len=*) :: val(dim_1)
+  integer(c_int) :: lengths(dim_1), i
+  do i = 1, dim_1
+    lengths(i) = len(val(i))
+  enddo
+  call asyncio_read_char_array1d_c(val, dim_1, lengths)
+  end subroutine asyncio_read_char_array1d
+
+  subroutine asyncio_read_char_array2d(val, dim_1, dim_2)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim_1, dim_2
+  character(len=*) :: val(dim_1, dim_2)
+  integer(c_int) :: lengths(dim_1, dim_2), i, j
+  do i = 1, dim_1
+    do j = 1, dim_2
+      lengths(i,j) = len(val(i,j))
+    enddo
+  enddo
+  call asyncio_read_char_array2d_c(val, dim_1, dim_2, lengths)
+  end subroutine asyncio_read_char_array2d
+
+  subroutine asyncio_read_logical_array1d(val, dim_1)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim_1
+  logical :: val(dim_1)
+  call asyncio_read_logical_array1d_c(val, dim_1)
+  end subroutine asyncio_read_logical_array1d
+
+  subroutine asyncio_read_integer_array1d(val, dim_1)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim_1
+  integer(c_int) :: val(dim_1)
+  call asyncio_read_integer_array1d_c(val, dim_1)
+  end subroutine asyncio_read_integer_array1d
+
+  subroutine asyncio_read_integer_array2d(val, dim_1, dim_2)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim_1, dim_2
+  integer(c_int) :: val(dim_1,dim_2)
+  call asyncio_read_integer_array2d_c(val, dim_1, dim_2)
+  end subroutine asyncio_read_integer_array2d
+
+  subroutine asyncio_read_float_array1d(val, dim_1)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim_1
+  real(c_float) :: val(dim_1)
+  call asyncio_read_float_array1d_c(val, dim_1)
+  end subroutine asyncio_read_float_array1d
+
+  subroutine asyncio_read_double_array1d(val, dim_1)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim_1
+  real(c_double) :: val(dim_1)
+  call asyncio_read_double_array1d_c(val, dim_1)
+  end subroutine asyncio_read_double_array1d
+
+  subroutine asyncio_read_double_array2d(val, dim_1, dim_2)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim_1, dim_2
+  real(c_double) :: val(dim_1,dim_2)
+  call asyncio_read_double_array2d_c(val, dim_1, dim_2)
+  end subroutine asyncio_read_double_array2d
+
+  subroutine asyncio_read_double_array3d(val, dim_1, dim_2, dim_3)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim_1, dim_2, dim_3
+  real(c_double) :: val(dim_1,dim_2,dim_3)
+  call asyncio_read_double_array3d_c(val, dim_1, dim_2, dim_3)
+  end subroutine asyncio_read_double_array3d
+
+  subroutine asyncio_read_double_array4d(val, dim_1, dim_2, dim_3, dim_4)
+  use iso_c_binding
+  implicit none
+  integer(c_int), value :: dim_1, dim_2, dim_3, dim_4
+  real(c_double) :: val(dim_1,dim_2,dim_3,dim_4)
+  call asyncio_read_double_array4d_c(val, dim_1, dim_2, dim_3, dim_4)
+  end subroutine asyncio_read_double_array4d
 
 #ifdef GPU
   attributes(device) &
