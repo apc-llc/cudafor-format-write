@@ -1022,7 +1022,7 @@ extern "C" void __real__gfortran_st_read_done(st_parameter_dt * stp);
 extern "C" void __wrap__gfortran_st_read_done(st_parameter_dt * stp)
 #endif
 {
-	// In case of array writing hook, we discard _gfortran_st_write_done
+	// In case of array writing hook, we discard _gfortran_st_read_done
 	// completely.
 	if (inside_hook_array)
 		return;
@@ -1130,6 +1130,11 @@ extern "C" void __wrap__gfortran_transfer_array_write(st_parameter_dt* stp, void
 #endif
 }
 
+extern "C" void _gfortran_transfer_integer(st_parameter_dt *, void *, int);
+extern "C" void _gfortran_transfer_real(st_parameter_dt *, void *, int);
+extern "C" void _gfortran_transfer_logical(st_parameter_dt *, void *, int);
+extern "C" void _gfortran_transfer_character(st_parameter_dt *, void *, int);
+
 extern "C" void _gfortran_transfer_integer_write(st_parameter_dt *, void *, int);
 extern "C" void _gfortran_transfer_real_write(st_parameter_dt *, void *, int);
 extern "C" void _gfortran_transfer_logical_write(st_parameter_dt *, void *, int);
@@ -1150,7 +1155,10 @@ static void st_callback(transaction_t* t, st_parameter_dt* st_parameter)
 		switch (type)
 		{
 		case TYPE_INT :
-			_gfortran_transfer_integer_write(st_parameter, value, sizeof(int));
+			if (t->kind == TRANSACTION_TYPE_READ)
+				_gfortran_transfer_integer(st_parameter, value, sizeof(int));
+			else
+				_gfortran_transfer_integer_write(st_parameter, value, sizeof(int));
 			t->offset += sizeof(int);
 			break;
 		case TYPE_INT_1D :
@@ -1176,7 +1184,10 @@ static void st_callback(transaction_t* t, st_parameter_dt* st_parameter)
 			}
 			break;
 		case TYPE_LONG_LONG :
-			_gfortran_transfer_integer_write(st_parameter, value, sizeof(long long));
+			if (t->kind == TRANSACTION_TYPE_READ)
+				_gfortran_transfer_integer(st_parameter, value, sizeof(long long));
+			else
+				_gfortran_transfer_integer_write(st_parameter, value, sizeof(long long));
 			t->offset += sizeof(long long);
 			break;
 		case TYPE_FLOAT :
@@ -1195,7 +1206,10 @@ static void st_callback(transaction_t* t, st_parameter_dt* st_parameter)
 			}
 			break;
 		case TYPE_DOUBLE :
-			_gfortran_transfer_real_write(st_parameter, value, sizeof(double));
+			if (t->kind == TRANSACTION_TYPE_READ)
+				_gfortran_transfer_real(st_parameter, value, sizeof(double));
+			else
+				_gfortran_transfer_real_write(st_parameter, value, sizeof(double));
 			t->offset += sizeof(double);
 			break;
 		case TYPE_DOUBLE_1D :
@@ -1243,7 +1257,10 @@ static void st_callback(transaction_t* t, st_parameter_dt* st_parameter)
 			}
 			break;
 		case TYPE_BOOLEAN :
-			_gfortran_transfer_logical_write(st_parameter, value, sizeof(bool));
+			if (t->kind == TRANSACTION_TYPE_READ)
+				_gfortran_transfer_logical(st_parameter, value, sizeof(bool));
+			else
+				_gfortran_transfer_logical_write(st_parameter, value, sizeof(bool));
 			t->offset += sizeof(bool);
 			break;
 		case TYPE_BOOLEAN_1D :
@@ -1262,7 +1279,10 @@ static void st_callback(transaction_t* t, st_parameter_dt* st_parameter)
 				int length = *(int*)value;
 				t->offset += sizeof(int);
 				value = (void*)(t->buffer + t->offset);
-				_gfortran_transfer_character_write(st_parameter, value, sizeof(char) * length);
+				if (t->kind == TRANSACTION_TYPE_READ)
+					_gfortran_transfer_character(st_parameter, value, sizeof(char) * length);
+				else
+					_gfortran_transfer_character_write(st_parameter, value, sizeof(char) * length);
 				t->offset += sizeof(char) * length;
 			}
 			break;
@@ -1277,7 +1297,10 @@ static void st_callback(transaction_t* t, st_parameter_dt* st_parameter)
 		}
 	}
 
-	_gfortran_st_write_done(st_parameter);
+	if (t->kind == TRANSACTION_TYPE_READ)
+		_gfortran_st_read_done(st_parameter);
+	else
+		_gfortran_st_write_done(st_parameter);
 }
 
 #ifdef __CUDACC__
