@@ -42,34 +42,34 @@
 
   i8 = i
 
-  call asyncio_begin('*','*')
+  call asyncio_write_begin('*','*')
   call asyncio_write(arr(length / 8))
   call asyncio_write(arr(length))
   call asyncio_write(length)
   call asyncio_write(i8)
   call asyncio_end()
 
-  call asyncio_begin('*', funcptr, 123)
+  call asyncio_write_begin('*', funcptr, 123)
   call asyncio_write(i8)
   call asyncio_end()
 
-  call asyncio_begin('*','*')
+  call asyncio_write_begin('*','*')
   call asyncio_write(arr(length / 16))
   call asyncio_write(arr(length))
   call asyncio_write(length)
   call asyncio_write(i8)
   call asyncio_end()
 
-  call asyncio_begin(3)
+  call asyncio_write_begin(3)
   call asyncio_write(arr(length) + 2)
   call asyncio_write(arr(length / 4))
   call asyncio_end()
 
-  call asyncio_begin(0, funcptr, 123)
+  call asyncio_write_begin(0, funcptr, 123)
   call asyncio_write(i8)
   call asyncio_end()
 
-  call asyncio_begin('*',funcptr,1)
+  call asyncio_write_begin('*',funcptr,1)
   do i=1,3
     call asyncio_write(arr(i+1))
     call asyncio_write(arr(i+2))

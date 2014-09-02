@@ -20,14 +20,14 @@
 
   i8 = i
 
-  call asyncio_begin('*','*')
+  call asyncio_write_begin('*','*')
   call asyncio_write(arr(length / 2))
   call asyncio_write(arr(length))
   call asyncio_write(length)
   call asyncio_write(i8)
   call asyncio_end()
 
-  call asyncio_begin('*','*')
+  call asyncio_write_begin('*','*')
   call asyncio_write(arr(length / 4))
   call asyncio_write(arr(length))
   call asyncio_write(length)

@@ -39,22 +39,39 @@ struct transaction_t
 
 enum type_t
 {
-	TYPE_INT,
-	TYPE_INT_1D,
-	TYPE_INT_2D,
-	TYPE_LONG_LONG,
-	TYPE_FLOAT,
-	TYPE_FLOAT_1D,
-	TYPE_DOUBLE,
-	TYPE_DOUBLE_1D,
-	TYPE_DOUBLE_2D,
-	TYPE_DOUBLE_3D,
-	TYPE_DOUBLE_4D,
-	TYPE_BOOLEAN,
-	TYPE_BOOLEAN_1D,
-	TYPE_CHAR,
-	TYPE_CHAR_1D,
-	TYPE_CHAR_2D
+	READ_INT,
+	READ_INT_1D,
+	READ_INT_2D,
+	READ_LONG_LONG,
+	READ_FLOAT,
+	READ_FLOAT_1D,
+	READ_DOUBLE,
+	READ_DOUBLE_1D,
+	READ_DOUBLE_2D,
+	READ_DOUBLE_3D,
+	READ_DOUBLE_4D,
+	READ_BOOLEAN,
+	READ_BOOLEAN_1D,
+	READ_CHAR,
+	READ_CHAR_1D,
+	READ_CHAR_2D,
+
+	WRITE_INT,
+	WRITE_INT_1D,
+	WRITE_INT_2D,
+	WRITE_LONG_LONG,
+	WRITE_FLOAT,
+	WRITE_FLOAT_1D,
+	WRITE_DOUBLE,
+	WRITE_DOUBLE_1D,
+	WRITE_DOUBLE_2D,
+	WRITE_DOUBLE_3D,
+	WRITE_DOUBLE_4D,
+	WRITE_BOOLEAN,
+	WRITE_BOOLEAN_1D,
+	WRITE_CHAR,
+	WRITE_CHAR_1D,
+	WRITE_CHAR_2D
 };
 
 #ifdef __CUDACC__
@@ -81,7 +98,7 @@ using namespace NAMESPACE;
 
 // On GPU all I/O routines work with thread 0 only.
 
-extern "C" DEVICE void asyncio_begin_default_unit_default_format_c(char unit, char format, int* iostat)
+extern "C" DEVICE void asyncio_begin_default_unit_default_format_c(char kind, char unit, char format, int* iostat)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -110,6 +127,10 @@ extern "C" DEVICE void asyncio_begin_default_unit_default_format_c(char unit, ch
 
 	transaction_t t;
 	t.kind = TRANSACTION_TYPE_UNKNOWN;
+	if (kind == 'r')
+		t.kind = TRANSACTION_TYPE_READ;
+	if (kind == 'w')
+		t.kind = TRANSACTION_TYPE_WRITE;
 	t.unit = ASYNCIO_DEFAULT_UNIT;
 	t.format = ASYNCIO_DEFAULT_FORMAT;
 #ifdef __CUDACC__
@@ -125,7 +146,7 @@ extern "C" DEVICE void asyncio_begin_default_unit_default_format_c(char unit, ch
 	asyncio_pbuffer += sizeof(transaction_t);
 }
 
-extern "C" DEVICE void asyncio_begin_unit_default_format_c(int unit, char format, int* iostat)
+extern "C" DEVICE void asyncio_begin_unit_default_format_c(char kind, int unit, char format, int* iostat)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -148,6 +169,10 @@ extern "C" DEVICE void asyncio_begin_unit_default_format_c(int unit, char format
 
 	transaction_t t;
 	t.kind = TRANSACTION_TYPE_UNKNOWN;
+	if (kind == 'r')
+		t.kind = TRANSACTION_TYPE_READ;
+	if (kind == 'w')
+		t.kind = TRANSACTION_TYPE_WRITE;
 	t.unit = unit;
 	t.format = ASYNCIO_DEFAULT_FORMAT;
 #ifdef __CUDACC__
@@ -163,7 +188,7 @@ extern "C" DEVICE void asyncio_begin_unit_default_format_c(int unit, char format
 	asyncio_pbuffer += sizeof(transaction_t);
 }
 
-extern "C" DEVICE void asyncio_begin_unit_unformatted_c(int unit, int* iostat)
+extern "C" DEVICE void asyncio_begin_unit_unformatted_c(char kind, int unit, int* iostat)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -179,13 +204,17 @@ extern "C" DEVICE void asyncio_begin_unit_unformatted_c(int unit, int* iostat)
 
 	transaction_t t;
 	t.kind = TRANSACTION_TYPE_UNKNOWN;
+	if (kind == 'r')
+		t.kind = TRANSACTION_TYPE_READ;
+	if (kind == 'w')
+		t.kind = TRANSACTION_TYPE_WRITE;
 	t.unit = unit;
 	t.format = ASYNCIO_UNFORMATTED;
 #ifdef __CUDACC__
-        *iostat = 0;
-        t.iostat = NULL;
+	*iostat = 0;
+	t.iostat = NULL;
 #else
-        t.iostat = iostat;
+	t.iostat = iostat;
 #endif
 	t_curr_nitems = 0;
 	
@@ -194,7 +223,7 @@ extern "C" DEVICE void asyncio_begin_unit_unformatted_c(int unit, int* iostat)
 	asyncio_pbuffer += sizeof(transaction_t);
 }
 
-extern "C" DEVICE void asyncio_begin_default_unit_formatted_c(char unit, void* func, int format, int* iostat)
+extern "C" DEVICE void asyncio_begin_default_unit_formatted_c(char kind, char unit, void* func, int format, int* iostat)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -217,14 +246,18 @@ extern "C" DEVICE void asyncio_begin_default_unit_formatted_c(char unit, void* f
 
 	transaction_t t;
 	t.kind = TRANSACTION_TYPE_UNKNOWN;
+	if (kind == 'r')
+		t.kind = TRANSACTION_TYPE_READ;
+	if (kind == 'w')
+		t.kind = TRANSACTION_TYPE_WRITE;
 	t.unit = ASYNCIO_DEFAULT_UNIT;
 	t.format = format;
 	t.func = func;
 #ifdef __CUDACC__
-        *iostat = 0;
-        t.iostat = NULL;
+	*iostat = 0;
+	t.iostat = NULL;
 #else
-        t.iostat = iostat;
+	t.iostat = iostat;
 #endif
 	t_curr_nitems = 0;
 	
@@ -233,7 +266,7 @@ extern "C" DEVICE void asyncio_begin_default_unit_formatted_c(char unit, void* f
 	asyncio_pbuffer += sizeof(transaction_t);
 }
 
-extern "C" DEVICE void asyncio_begin_unit_formatted_c(int unit, void* func, int format, int* iostat)
+extern "C" DEVICE void asyncio_begin_unit_formatted_c(char kind, int unit, void* func, int format, int* iostat)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -249,14 +282,18 @@ extern "C" DEVICE void asyncio_begin_unit_formatted_c(int unit, void* func, int 
 
 	transaction_t t;
 	t.kind = TRANSACTION_TYPE_UNKNOWN;
+	if (kind == 'r')
+		t.kind = TRANSACTION_TYPE_READ;
+	if (kind == 'w')
+		t.kind = TRANSACTION_TYPE_WRITE;
 	t.unit = unit;
 	t.format = format;
 	t.func = func;
 #ifdef __CUDACC__
-        *iostat = 0;
-        t.iostat = NULL;
+	*iostat = 0;
+	t.iostat = NULL;
 #else
-        t.iostat = iostat;
+	t.iostat = iostat;
 #endif
 	t_curr_nitems = 0;
 	
@@ -265,7 +302,7 @@ extern "C" DEVICE void asyncio_begin_unit_formatted_c(int unit, void* func, int 
 	asyncio_pbuffer += sizeof(transaction_t);
 }
 
-static inline DEVICE void asyncio_submit_integer_c(int val, kind_t kind)
+extern "C" DEVICE void asyncio_read_integer_c(int* val)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -277,16 +314,41 @@ static inline DEVICE void asyncio_submit_integer_c(int val, kind_t kind)
 		trap();
 	}
 
-	if (t_curr->kind == TRANSACTION_TYPE_UNKNOWN)
-		t_curr->kind = kind;
-	if (t_curr->kind != kind)
+	if (t_curr->kind != TRANSACTION_TYPE_READ)
 	{
 		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
 		asyncio_error = true;
 		trap();
 	}
 
-	type_t type = TYPE_INT;
+	type_t type = READ_INT;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &val, sizeof(int*));
+	asyncio_pbuffer += sizeof(int*);
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_integer_c(int val)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	if (t_curr->kind != TRANSACTION_TYPE_WRITE)
+	{
+		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = WRITE_INT;
 	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
 	asyncio_pbuffer += sizeof(type_t);
 	*(int*)asyncio_pbuffer = val;
@@ -294,17 +356,7 @@ static inline DEVICE void asyncio_submit_integer_c(int val, kind_t kind)
 	t_curr_nitems++;
 }
 
-extern "C" DEVICE void asyncio_read_integer_c(int val)
-{
-	asyncio_submit_integer_c(val, TRANSACTION_TYPE_READ);
-}
-
-extern "C" DEVICE void asyncio_write_integer_c(int val)
-{
-	asyncio_submit_integer_c(val, TRANSACTION_TYPE_WRITE);
-}
-
-static inline DEVICE void asyncio_submit_long_long_c(long long val, kind_t kind)
+extern "C" DEVICE void asyncio_read_long_long_c(long long* val)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -316,16 +368,41 @@ static inline DEVICE void asyncio_submit_long_long_c(long long val, kind_t kind)
 		trap();
 	}
 
-	if (t_curr->kind == TRANSACTION_TYPE_UNKNOWN)
-		t_curr->kind = kind;
-	if (t_curr->kind != kind)
+	if (t_curr->kind != TRANSACTION_TYPE_READ)
 	{
 		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
 		asyncio_error = true;
 		trap();
 	}
 
-	type_t type = TYPE_LONG_LONG;
+	type_t type = READ_LONG_LONG;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &val, sizeof(long long*));
+	asyncio_pbuffer += sizeof(long long*);
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_long_long_c(long long val)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	if (t_curr->kind != TRANSACTION_TYPE_WRITE)
+	{
+		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = WRITE_LONG_LONG;
 	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
 	asyncio_pbuffer += sizeof(type_t);
 	memcpy(asyncio_pbuffer, &val, sizeof(long long));
@@ -333,17 +410,7 @@ static inline DEVICE void asyncio_submit_long_long_c(long long val, kind_t kind)
 	t_curr_nitems++;
 }
 
-extern "C" DEVICE void asyncio_read_long_long_c(long long val)
-{
-	asyncio_submit_long_long_c(val, TRANSACTION_TYPE_READ);
-}
-
-extern "C" DEVICE void asyncio_write_long_long_c(long long val)
-{
-	asyncio_submit_long_long_c(val, TRANSACTION_TYPE_WRITE);
-}
-
-static inline DEVICE void asyncio_submit_float_c(float val, kind_t kind)
+extern "C" DEVICE void asyncio_read_float_c(float* val)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -355,16 +422,41 @@ static inline DEVICE void asyncio_submit_float_c(float val, kind_t kind)
 		trap();
 	}
 
-	if (t_curr->kind == TRANSACTION_TYPE_UNKNOWN)
-		t_curr->kind = kind;
-	if (t_curr->kind != kind)
+	if (t_curr->kind != TRANSACTION_TYPE_READ)
 	{
 		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
 		asyncio_error = true;
 		trap();
 	}
 
-	type_t type = TYPE_FLOAT;
+	type_t type = READ_FLOAT;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &val, sizeof(float*));
+	asyncio_pbuffer += sizeof(float*);
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_float_c(float val)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	if (t_curr->kind != TRANSACTION_TYPE_WRITE)
+	{
+		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = WRITE_FLOAT;
 	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
 	asyncio_pbuffer += sizeof(type_t);
 	memcpy(asyncio_pbuffer, &val, sizeof(float));
@@ -372,17 +464,7 @@ static inline DEVICE void asyncio_submit_float_c(float val, kind_t kind)
 	t_curr_nitems++;
 }
 
-extern "C" DEVICE void asyncio_read_float_c(float val)
-{
-	asyncio_submit_float_c(val, TRANSACTION_TYPE_READ);
-}
-
-extern "C" DEVICE void asyncio_write_float_c(float val)
-{
-	asyncio_submit_float_c(val, TRANSACTION_TYPE_WRITE);
-}
-
-static inline DEVICE void asyncio_submit_double_c(double val, kind_t kind)
+extern "C" DEVICE void asyncio_read_double_c(double* val)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -394,16 +476,41 @@ static inline DEVICE void asyncio_submit_double_c(double val, kind_t kind)
 		trap();
 	}
 
-	if (t_curr->kind == TRANSACTION_TYPE_UNKNOWN)
-		t_curr->kind = kind;
-	if (t_curr->kind != kind)
+	if (t_curr->kind != TRANSACTION_TYPE_READ)
 	{
 		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
 		asyncio_error = true;
 		trap();
 	}
 
-	type_t type = TYPE_DOUBLE;
+	type_t type = READ_DOUBLE;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &val, sizeof(double*));
+	asyncio_pbuffer += sizeof(double*);
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_double_c(double val)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	if (t_curr->kind != TRANSACTION_TYPE_WRITE)
+	{
+		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = WRITE_DOUBLE;
 	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
 	asyncio_pbuffer += sizeof(type_t);
 	memcpy(asyncio_pbuffer, &val, sizeof(double));
@@ -411,17 +518,7 @@ static inline DEVICE void asyncio_submit_double_c(double val, kind_t kind)
 	t_curr_nitems++;
 }
 
-extern "C" DEVICE void asyncio_read_double_c(double val)
-{
-	asyncio_submit_double_c(val, TRANSACTION_TYPE_READ);
-}
-
-extern "C" DEVICE void asyncio_write_double_c(double val)
-{
-	asyncio_submit_double_c(val, TRANSACTION_TYPE_WRITE);
-}
-
-static inline DEVICE void asyncio_submit_logical_c(bool val, kind_t kind)
+extern "C" DEVICE void asyncio_read_logical_c(bool* val)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -433,16 +530,41 @@ static inline DEVICE void asyncio_submit_logical_c(bool val, kind_t kind)
 		trap();
 	}
 
-	if (t_curr->kind == TRANSACTION_TYPE_UNKNOWN)
-		t_curr->kind = kind;
-	if (t_curr->kind != kind)
+	if (t_curr->kind != TRANSACTION_TYPE_READ)
 	{
 		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
 		asyncio_error = true;
 		trap();
 	}
 
-	type_t type = TYPE_BOOLEAN;
+	type_t type = READ_BOOLEAN;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &val, sizeof(bool*));
+	asyncio_pbuffer += sizeof(bool*);
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_logical_c(bool val)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	if (t_curr->kind != TRANSACTION_TYPE_WRITE)
+	{
+		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = WRITE_BOOLEAN;
 	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
 	asyncio_pbuffer += sizeof(type_t);
 	memcpy(asyncio_pbuffer, &val, sizeof(bool));
@@ -450,17 +572,7 @@ static inline DEVICE void asyncio_submit_logical_c(bool val, kind_t kind)
 	t_curr_nitems++;
 }
 
-extern "C" DEVICE void asyncio_read_logical_c(bool val)
-{
-	asyncio_submit_logical_c(val, TRANSACTION_TYPE_READ);
-}
-
-extern "C" DEVICE void asyncio_write_logical_c(bool val)
-{
-	asyncio_submit_logical_c(val, TRANSACTION_TYPE_WRITE);
-}
-
-static inline DEVICE void asyncio_submit_char_c(char* val, int length, kind_t kind)
+extern "C" DEVICE void asyncio_read_char_c(char* val, int length)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -472,16 +584,43 @@ static inline DEVICE void asyncio_submit_char_c(char* val, int length, kind_t ki
 		trap();
 	}
 
-	if (t_curr->kind == TRANSACTION_TYPE_UNKNOWN)
-		t_curr->kind = kind;
-	if (t_curr->kind != kind)
+	if (t_curr->kind != TRANSACTION_TYPE_READ)
 	{
 		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
 		asyncio_error = true;
 		trap();
 	}
 
-	type_t type = TYPE_CHAR;
+	type_t type = READ_CHAR;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &length, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &val, sizeof(char*));
+	asyncio_pbuffer += sizeof(char*);
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_char_c(char* val, int length)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	if (t_curr->kind != TRANSACTION_TYPE_WRITE)
+	{
+		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = WRITE_CHAR;
 	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
 	asyncio_pbuffer += sizeof(type_t);
 	memcpy(asyncio_pbuffer, &length, sizeof(int));
@@ -491,17 +630,7 @@ static inline DEVICE void asyncio_submit_char_c(char* val, int length, kind_t ki
 	t_curr_nitems++;
 }
 
-extern "C" DEVICE void asyncio_read_char_c(char* val, int length)
-{
-	asyncio_submit_char_c(val, length, TRANSACTION_TYPE_READ);
-}
-
-extern "C" DEVICE void asyncio_write_char_c(char* val, int length)
-{
-	asyncio_submit_char_c(val, length, TRANSACTION_TYPE_WRITE);
-}
-
-static inline DEVICE void asyncio_submit_char_array1d_c(char** val, int dim_1, int* lengths, kind_t kind)
+extern "C" DEVICE void asyncio_read_char_array1d_c(char** val, int dim_1, int* lengths)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -511,17 +640,7 @@ static inline DEVICE void asyncio_submit_char_array1d_c(char** val, int dim_1, i
 	trap();
 }
 
-extern "C" DEVICE void asyncio_read_char_array1d_c(char** val, int dim_1, int* lengths)
-{
-	asyncio_submit_char_array1d_c(val, dim_1, lengths, TRANSACTION_TYPE_READ);
-}
-
 extern "C" DEVICE void asyncio_write_char_array1d_c(char** val, int dim_1, int* lengths)
-{
-	asyncio_submit_char_array1d_c(val, dim_1, lengths, TRANSACTION_TYPE_WRITE);
-}
-
-static inline DEVICE void asyncio_submit_char_array2d_c(char** val, int dim_1, int dim_2, int* lengths, kind_t kind)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -533,15 +652,25 @@ static inline DEVICE void asyncio_submit_char_array2d_c(char** val, int dim_1, i
 
 extern "C" DEVICE void asyncio_read_char_array2d_c(char** val, int dim_1, int dim_2, int* lengths)
 {
-	asyncio_submit_char_array2d_c(val, dim_1, dim_2, lengths, TRANSACTION_TYPE_READ);
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	printf("ASYNCIO ERROR: not implemented\n");
+	asyncio_error = true;
+	trap();
 }
 
 extern "C" DEVICE void asyncio_write_char_array2d_c(char** val, int dim_1, int dim_2, int* lengths)
 {
-	asyncio_submit_char_array2d_c(val, dim_1, dim_2, lengths, TRANSACTION_TYPE_WRITE);
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	printf("ASYNCIO ERROR: not implemented\n");
+	asyncio_error = true;
+	trap();
 }
 
-static inline DEVICE void asyncio_submit_logical_array1d_c(bool* val, int dim_1, kind_t kind)
+extern "C" DEVICE void asyncio_read_logical_array1d_c(bool* val, int dim_1)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -553,16 +682,43 @@ static inline DEVICE void asyncio_submit_logical_array1d_c(bool* val, int dim_1,
 		trap();
 	}
 
-	if (t_curr->kind == TRANSACTION_TYPE_UNKNOWN)
-		t_curr->kind = kind;
-	if (t_curr->kind != kind)
+	if (t_curr->kind != TRANSACTION_TYPE_READ)
 	{
 		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
 		asyncio_error = true;
 		trap();
 	}
 
-	type_t type = TYPE_BOOLEAN_1D;
+	type_t type = READ_BOOLEAN_1D;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &val, sizeof(bool*));
+	asyncio_pbuffer += sizeof(bool*);
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_logical_array1d_c(bool* val, int dim_1)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	if (t_curr->kind != TRANSACTION_TYPE_WRITE)
+	{
+		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = WRITE_BOOLEAN_1D;
 	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
 	asyncio_pbuffer += sizeof(type_t);
 	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
@@ -572,17 +728,7 @@ static inline DEVICE void asyncio_submit_logical_array1d_c(bool* val, int dim_1,
 	t_curr_nitems++;
 }
 
-extern "C" DEVICE void asyncio_read_logical_array1d_c(bool* val, int dim_1)
-{
-	asyncio_submit_logical_array1d_c(val, dim_1, TRANSACTION_TYPE_READ);
-}
-
-extern "C" DEVICE void asyncio_write_logical_array1d_c(bool* val, int dim_1)
-{
-	asyncio_submit_logical_array1d_c(val, dim_1, TRANSACTION_TYPE_WRITE);
-}
-
-static inline DEVICE void asyncio_submit_integer_array1d_c(int* val, int dim_1, kind_t kind)
+extern "C" DEVICE void asyncio_read_integer_array1d_c(int* val, int dim_1)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -594,16 +740,43 @@ static inline DEVICE void asyncio_submit_integer_array1d_c(int* val, int dim_1, 
 		trap();
 	}
 
-	if (t_curr->kind == TRANSACTION_TYPE_UNKNOWN)
-		t_curr->kind = kind;
-	if (t_curr->kind != kind)
+	if (t_curr->kind != TRANSACTION_TYPE_READ)
 	{
 		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
 		asyncio_error = true;
 		trap();
 	}
 
-	type_t type = TYPE_INT_1D;
+	type_t type = READ_INT_1D;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &val, sizeof(int*));
+	asyncio_pbuffer += sizeof(int*);
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_integer_array1d_c(int* val, int dim_1)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	if (t_curr->kind != TRANSACTION_TYPE_WRITE)
+	{
+		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = WRITE_INT_1D;
 	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
 	asyncio_pbuffer += sizeof(type_t);
 	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
@@ -613,17 +786,7 @@ static inline DEVICE void asyncio_submit_integer_array1d_c(int* val, int dim_1, 
 	t_curr_nitems++;
 }
 
-extern "C" DEVICE void asyncio_read_integer_array1d_c(int* val, int dim_1)
-{
-	asyncio_submit_integer_array1d_c(val, dim_1, TRANSACTION_TYPE_READ);
-}
-
-extern "C" DEVICE void asyncio_write_integer_array1d_c(int* val, int dim_1)
-{
-	asyncio_submit_integer_array1d_c(val, dim_1, TRANSACTION_TYPE_WRITE);
-}
-
-static inline DEVICE void asyncio_submit_integer_array2d_c(int* val, int dim_1, int dim_2, kind_t kind)
+extern "C" DEVICE void asyncio_read_integer_array2d_c(int* val, int dim_1, int dim_2)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -635,16 +798,45 @@ static inline DEVICE void asyncio_submit_integer_array2d_c(int* val, int dim_1, 
 		trap();
 	}
 
-	if (t_curr->kind == TRANSACTION_TYPE_UNKNOWN)
-		t_curr->kind = kind;
-	if (t_curr->kind != kind)
+	if (t_curr->kind != TRANSACTION_TYPE_READ)
 	{
 		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
 		asyncio_error = true;
 		trap();
 	}
 
-	type_t type = TYPE_INT_2D;
+	type_t type = READ_INT_2D;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &dim_2, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &val, sizeof(int*));
+	asyncio_pbuffer += sizeof(int*);
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_integer_array2d_c(int* val, int dim_1, int dim_2)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	if (t_curr->kind != TRANSACTION_TYPE_WRITE)
+	{
+		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = WRITE_INT_2D;
 	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
 	asyncio_pbuffer += sizeof(type_t);
 	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
@@ -656,17 +848,7 @@ static inline DEVICE void asyncio_submit_integer_array2d_c(int* val, int dim_1, 
 	t_curr_nitems++;
 }
 
-extern "C" DEVICE void asyncio_read_integer_array2d_c(int* val, int dim_1, int dim_2)
-{
-	asyncio_submit_integer_array2d_c(val, dim_1, dim_2, TRANSACTION_TYPE_READ);
-}
-
-extern "C" DEVICE void asyncio_write_integer_array2d_c(int* val, int dim_1, int dim_2)
-{
-	asyncio_submit_integer_array2d_c(val, dim_1, dim_2, TRANSACTION_TYPE_WRITE);
-}
-
-static inline DEVICE void asyncio_submit_float_array1d_c(float* val, int dim_1, kind_t kind)
+extern "C" DEVICE void asyncio_read_float_array1d_c(float* val, int dim_1)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -678,16 +860,43 @@ static inline DEVICE void asyncio_submit_float_array1d_c(float* val, int dim_1, 
 		trap();
 	}
 
-	if (t_curr->kind == TRANSACTION_TYPE_UNKNOWN)
-		t_curr->kind = kind;
-	if (t_curr->kind != kind)
+	if (t_curr->kind != TRANSACTION_TYPE_READ)
 	{
 		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
 		asyncio_error = true;
 		trap();
 	}
 
-	type_t type = TYPE_FLOAT_1D;
+	type_t type = READ_FLOAT_1D;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &val, sizeof(float*));
+	asyncio_pbuffer += sizeof(float*);
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_float_array1d_c(float* val, int dim_1)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	if (t_curr->kind != TRANSACTION_TYPE_WRITE)
+	{
+		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = WRITE_FLOAT_1D;
 	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
 	asyncio_pbuffer += sizeof(type_t);
 	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
@@ -697,17 +906,7 @@ static inline DEVICE void asyncio_submit_float_array1d_c(float* val, int dim_1, 
 	t_curr_nitems++;
 }
 
-extern "C" DEVICE void asyncio_read_float_array1d_c(float* val, int dim_1)
-{
-	asyncio_submit_float_array1d_c(val, dim_1, TRANSACTION_TYPE_READ);
-}
-
-extern "C" DEVICE void asyncio_write_float_array1d_c(float* val, int dim_1)
-{
-	asyncio_submit_float_array1d_c(val, dim_1, TRANSACTION_TYPE_WRITE);
-}
-
-static inline DEVICE void asyncio_submit_double_array1d_c(double* val, int dim_1, kind_t kind)
+extern "C" DEVICE void asyncio_read_double_array1d_c(double* val, int dim_1)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -719,16 +918,43 @@ static inline DEVICE void asyncio_submit_double_array1d_c(double* val, int dim_1
 		trap();
 	}
 
-	if (t_curr->kind == TRANSACTION_TYPE_UNKNOWN)
-		t_curr->kind = kind;
-	if (t_curr->kind != kind)
+	if (t_curr->kind != TRANSACTION_TYPE_READ)
 	{
 		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
 		asyncio_error = true;
 		trap();
 	}
 
-	type_t type = TYPE_DOUBLE_1D;
+	type_t type = READ_DOUBLE_1D;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &val, sizeof(double*));
+	asyncio_pbuffer += sizeof(double*);
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_double_array1d_c(double* val, int dim_1)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	if (t_curr->kind != TRANSACTION_TYPE_WRITE)
+	{
+		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = WRITE_DOUBLE_1D;
 	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
 	asyncio_pbuffer += sizeof(type_t);
 	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
@@ -738,17 +964,7 @@ static inline DEVICE void asyncio_submit_double_array1d_c(double* val, int dim_1
 	t_curr_nitems++;
 }
 
-extern "C" DEVICE void asyncio_read_double_array1d_c(double* val, int dim_1)
-{
-	asyncio_submit_double_array1d_c(val, dim_1, TRANSACTION_TYPE_READ);
-}
-
-extern "C" DEVICE void asyncio_write_double_array1d_c(double* val, int dim_1)
-{
-	asyncio_submit_double_array1d_c(val, dim_1, TRANSACTION_TYPE_WRITE);
-}
-
-static inline DEVICE void asyncio_submit_double_array2d_c(double* val, int dim_1, int dim_2, kind_t kind)
+extern "C" DEVICE void asyncio_read_double_array2d_c(double* val, int dim_1, int dim_2)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -760,16 +976,45 @@ static inline DEVICE void asyncio_submit_double_array2d_c(double* val, int dim_1
 		trap();
 	}
 
-	if (t_curr->kind == TRANSACTION_TYPE_UNKNOWN)
-		t_curr->kind = kind;
-	if (t_curr->kind != kind)
+	if (t_curr->kind != TRANSACTION_TYPE_READ)
 	{
 		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
 		asyncio_error = true;
 		trap();
 	}
 
-	type_t type = TYPE_DOUBLE_2D;
+	type_t type = READ_DOUBLE_2D;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &dim_2, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &val, sizeof(double*));
+	asyncio_pbuffer += sizeof(double*);
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_double_array2d_c(double* val, int dim_1, int dim_2)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	if (t_curr->kind != TRANSACTION_TYPE_WRITE)
+	{
+		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = WRITE_DOUBLE_2D;
 	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
 	asyncio_pbuffer += sizeof(type_t);
 	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
@@ -781,17 +1026,7 @@ static inline DEVICE void asyncio_submit_double_array2d_c(double* val, int dim_1
 	t_curr_nitems++;
 }
 
-extern "C" DEVICE void asyncio_read_double_array2d_c(double* val, int dim_1, int dim_2)
-{
-	asyncio_submit_double_array2d_c(val, dim_1, dim_2, TRANSACTION_TYPE_READ);
-}
-
-extern "C" DEVICE void asyncio_write_double_array2d_c(double* val, int dim_1, int dim_2)
-{
-	asyncio_submit_double_array2d_c(val, dim_1, dim_2, TRANSACTION_TYPE_WRITE);
-}
-
-static inline DEVICE void asyncio_submit_double_array3d_c(double* val, int dim_1, int dim_2, int dim_3, kind_t kind)
+extern "C" DEVICE void asyncio_read_double_array3d_c(double* val, int dim_1, int dim_2, int dim_3)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -803,16 +1038,47 @@ static inline DEVICE void asyncio_submit_double_array3d_c(double* val, int dim_1
 		trap();
 	}
 
-	if (t_curr->kind == TRANSACTION_TYPE_UNKNOWN)
-		t_curr->kind = kind;
-	if (t_curr->kind != kind)
+	if (t_curr->kind != TRANSACTION_TYPE_READ)
 	{
 		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
 		asyncio_error = true;
 		trap();
 	}
 
-	type_t type = TYPE_DOUBLE_3D;
+	type_t type = READ_DOUBLE_3D;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &dim_2, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &dim_3, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &val, sizeof(double*));
+	asyncio_pbuffer += sizeof(double*);
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_double_array3d_c(double* val, int dim_1, int dim_2, int dim_3)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	if (t_curr->kind != TRANSACTION_TYPE_WRITE)
+	{
+		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = WRITE_DOUBLE_3D;
 	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
 	asyncio_pbuffer += sizeof(type_t);
 	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
@@ -826,17 +1092,7 @@ static inline DEVICE void asyncio_submit_double_array3d_c(double* val, int dim_1
 	t_curr_nitems++;
 }
 
-extern "C" DEVICE void asyncio_read_double_array3d_c(double* val, int dim_1, int dim_2, int dim_3)
-{
-	asyncio_submit_double_array3d_c(val, dim_1, dim_2, dim_3, TRANSACTION_TYPE_READ);
-}
-
-extern "C" DEVICE void asyncio_write_double_array3d_c(double* val, int dim_1, int dim_2, int dim_3)
-{
-	asyncio_submit_double_array3d_c(val, dim_1, dim_2, dim_3, TRANSACTION_TYPE_WRITE);
-}
-
-static inline DEVICE void asyncio_submit_double_array4d_c(double* val, int dim_1, int dim_2, int dim_3, int dim_4, kind_t kind)
+extern "C" DEVICE void asyncio_read_double_array4d_c(double* val, int dim_1, int dim_2, int dim_3, int dim_4)
 {
 #ifdef __CUDACC__
 	if (threadIdx.x) return;
@@ -848,16 +1104,49 @@ static inline DEVICE void asyncio_submit_double_array4d_c(double* val, int dim_1
 		trap();
 	}
 
-	if (t_curr->kind == TRANSACTION_TYPE_UNKNOWN)
-		t_curr->kind = kind;
-	if (t_curr->kind != kind)
+	if (t_curr->kind != TRANSACTION_TYPE_READ)
 	{
 		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
 		asyncio_error = true;
 		trap();
 	}
 
-	type_t type = TYPE_DOUBLE_3D;
+	type_t type = READ_DOUBLE_3D;
+	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
+	asyncio_pbuffer += sizeof(type_t);
+	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &dim_2, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &dim_3, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &dim_4, sizeof(int));
+	asyncio_pbuffer += sizeof(int);
+	memcpy(asyncio_pbuffer, &val, sizeof(double*));
+	asyncio_pbuffer += sizeof(double*);
+	t_curr_nitems++;
+}
+
+extern "C" DEVICE void asyncio_write_double_array4d_c(double* val, int dim_1, int dim_2, int dim_3, int dim_4)
+{
+#ifdef __CUDACC__
+	if (threadIdx.x) return;
+#endif
+	if (!t_curr)
+	{
+		printf("ASYNCIO ERROR: Attempted to write without an active transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	if (t_curr->kind != TRANSACTION_TYPE_WRITE)
+	{
+		printf("ASYNCIO ERROR: Cannot read in write and write in read transaction\n");
+		asyncio_error = true;
+		trap();
+	}
+
+	type_t type = WRITE_DOUBLE_3D;
 	memcpy(asyncio_pbuffer, &type, sizeof(type_t));
 	asyncio_pbuffer += sizeof(type_t);
 	memcpy(asyncio_pbuffer, &dim_1, sizeof(int));
@@ -871,16 +1160,6 @@ static inline DEVICE void asyncio_submit_double_array4d_c(double* val, int dim_1
 	memcpy(asyncio_pbuffer, val, sizeof(double) * dim_1 * dim_2 * dim_3 * dim_4);
 	asyncio_pbuffer += sizeof(double) * dim_1 * dim_2 * dim_3 * dim_4;
 	t_curr_nitems++;
-}
-
-extern "C" DEVICE void asyncio_read_double_array4d_c(double* val, int dim_1, int dim_2, int dim_3, int dim_4)
-{
-	asyncio_submit_double_array4d_c(val, dim_1, dim_2, dim_3, dim_4, TRANSACTION_TYPE_READ);
-}
-
-extern "C" DEVICE void asyncio_write_double_array4d_c(double* val, int dim_1, int dim_2, int dim_3, int dim_4)
-{
-	asyncio_submit_double_array4d_c(val, dim_1, dim_2, dim_3, dim_4, TRANSACTION_TYPE_WRITE);
 }
 
 extern "C" void asyncio_flush();
@@ -1154,14 +1433,26 @@ static void st_callback(transaction_t* t, st_parameter_dt* st_parameter)
 
 		switch (type)
 		{
-		case TYPE_INT :
-			if (t->kind == TRANSACTION_TYPE_READ)
-				_gfortran_transfer_integer(st_parameter, value, sizeof(int));
-			else
-				_gfortran_transfer_integer_write(st_parameter, value, sizeof(int));
+		case READ_INT :
+			_gfortran_transfer_integer(st_parameter, *(void**)value, sizeof(int));
+			t->offset += sizeof(int*);
+			break;
+		case WRITE_INT :
+			_gfortran_transfer_integer_write(st_parameter, value, sizeof(int));
 			t->offset += sizeof(int);
 			break;
-		case TYPE_INT_1D :
+		case READ_INT_1D :
+			{
+				int* length = (int*)value;
+				t->offset += sizeof(int);
+				value = *(void**)(t->buffer + t->offset);
+				inside_hook_array = true;
+				asyncio_hook_write_integer_array_1d(value, length[0]);
+				inside_hook_array = false;
+				t->offset += sizeof(int*);
+			}
+			break;
+		case WRITE_INT_1D :
 			{
 				int* length = (int*)value;
 				t->offset += sizeof(int);
@@ -1172,7 +1463,18 @@ static void st_callback(transaction_t* t, st_parameter_dt* st_parameter)
 				t->offset += sizeof(int) * length[0];
 			}
 			break;
-		case TYPE_INT_2D :
+		case READ_INT_2D :
+			{
+				int* length = (int*)value;
+				t->offset += sizeof(int) * 2;
+				value = *(void**)(t->buffer + t->offset);
+				inside_hook_array = true;
+				asyncio_hook_write_integer_array_2d(value, length[0], length[1]);
+				inside_hook_array = false;
+				t->offset += sizeof(int*);
+			}
+			break;
+		case WRITE_INT_2D :
 			{
 				int* length = (int*)value;
 				t->offset += sizeof(int) * 2;
@@ -1183,18 +1485,34 @@ static void st_callback(transaction_t* t, st_parameter_dt* st_parameter)
 				t->offset += sizeof(int) * length[0] * length[1];
 			}
 			break;
-		case TYPE_LONG_LONG :
-			if (t->kind == TRANSACTION_TYPE_READ)
-				_gfortran_transfer_integer(st_parameter, value, sizeof(long long));
-			else
-				_gfortran_transfer_integer_write(st_parameter, value, sizeof(long long));
+		case READ_LONG_LONG :
+			_gfortran_transfer_integer(st_parameter, *(void**)value, sizeof(long long));
+			t->offset += sizeof(long long*);
+			break;
+		case WRITE_LONG_LONG :
+			_gfortran_transfer_integer_write(st_parameter, value, sizeof(long long));
 			t->offset += sizeof(long long);
 			break;
-		case TYPE_FLOAT :
+		case READ_FLOAT :
+			_gfortran_transfer_real(st_parameter, *(void**)value, sizeof(float));
+			t->offset += sizeof(float*);
+			break;
+		case WRITE_FLOAT :
 			_gfortran_transfer_real_write(st_parameter, value, sizeof(float));
 			t->offset += sizeof(float);
 			break;
-		case TYPE_FLOAT_1D :
+		case READ_FLOAT_1D :
+			{
+				int* length = (int*)value;
+				t->offset += sizeof(int);
+				value = *(void**)(t->buffer + t->offset);
+				inside_hook_array = true;
+				asyncio_hook_write_float_array_1d(value, length[0]);
+				inside_hook_array = false;
+				t->offset += sizeof(float*);
+			}
+			break;
+		case WRITE_FLOAT_1D :
 			{
 				int* length = (int*)value;
 				t->offset += sizeof(int);
@@ -1205,14 +1523,26 @@ static void st_callback(transaction_t* t, st_parameter_dt* st_parameter)
 				t->offset += sizeof(float) * length[0];
 			}
 			break;
-		case TYPE_DOUBLE :
-			if (t->kind == TRANSACTION_TYPE_READ)
-				_gfortran_transfer_real(st_parameter, value, sizeof(double));
-			else
-				_gfortran_transfer_real_write(st_parameter, value, sizeof(double));
+		case READ_DOUBLE :
+			_gfortran_transfer_real(st_parameter, *(void**)value, sizeof(double));
+			t->offset += sizeof(double*);
+			break;
+		case WRITE_DOUBLE :
+			_gfortran_transfer_real_write(st_parameter, value, sizeof(double));
 			t->offset += sizeof(double);
 			break;
-		case TYPE_DOUBLE_1D :
+		case READ_DOUBLE_1D :
+			{
+				int* length = (int*)value;
+				t->offset += sizeof(int);
+				value = *(void**)(t->buffer + t->offset);
+				inside_hook_array = true;
+				asyncio_hook_write_double_array_1d(value, length[0]);
+				inside_hook_array = false;
+				t->offset += sizeof(double*);
+			}
+			break;
+		case WRITE_DOUBLE_1D :
 			{
 				int* length = (int*)value;
 				t->offset += sizeof(int);
@@ -1223,7 +1553,18 @@ static void st_callback(transaction_t* t, st_parameter_dt* st_parameter)
 				t->offset += sizeof(double) * length[0];
 			}
 			break;
-		case TYPE_DOUBLE_2D :
+		case READ_DOUBLE_2D :
+			{
+				int* length = (int*)value;
+				t->offset += sizeof(int) * 2;
+				value = *(void**)(t->buffer + t->offset);
+				inside_hook_array = true;
+				asyncio_hook_write_double_array_2d(value, length[0], length[1]);
+				inside_hook_array = false;
+				t->offset += sizeof(double*);
+			}
+			break;
+		case WRITE_DOUBLE_2D :
 			{
 				int* length = (int*)value;
 				t->offset += sizeof(int) * 2;
@@ -1234,7 +1575,18 @@ static void st_callback(transaction_t* t, st_parameter_dt* st_parameter)
 				t->offset += sizeof(double) * length[0] * length[1];
 			}
 			break;
-		case TYPE_DOUBLE_3D :
+		case READ_DOUBLE_3D :
+			{
+				int* length = (int*)value;
+				t->offset += sizeof(int) * 3;
+				value = *(void**)(t->buffer + t->offset);
+				inside_hook_array = true;
+				asyncio_hook_write_double_array_3d(value, length[0], length[1], length[2]);
+				inside_hook_array = false;
+				t->offset += sizeof(double*);
+			}
+			break;
+		case WRITE_DOUBLE_3D :
 			{
 				int* length = (int*)value;
 				t->offset += sizeof(int) * 3;
@@ -1245,7 +1597,18 @@ static void st_callback(transaction_t* t, st_parameter_dt* st_parameter)
 				t->offset += sizeof(double) * length[0] * length[1] * length[2];
 			}
 			break;
-		case TYPE_DOUBLE_4D :
+		case READ_DOUBLE_4D :
+			{
+				int* length = (int*)value;
+				t->offset += sizeof(int) * 4;
+				value = *(void**)(t->buffer + t->offset);
+				inside_hook_array = true;
+				asyncio_hook_write_double_array_4d(value, length[0], length[1], length[2], length[3]);
+				inside_hook_array = false;
+				t->offset += sizeof(double*);
+			}
+			break;
+		case WRITE_DOUBLE_4D :
 			{
 				int* length = (int*)value;
 				t->offset += sizeof(int) * 4;
@@ -1256,14 +1619,26 @@ static void st_callback(transaction_t* t, st_parameter_dt* st_parameter)
 				t->offset += sizeof(double) * length[0] * length[1] * length[2] * length[3];
 			}
 			break;
-		case TYPE_BOOLEAN :
-			if (t->kind == TRANSACTION_TYPE_READ)
-				_gfortran_transfer_logical(st_parameter, value, sizeof(bool));
-			else
-				_gfortran_transfer_logical_write(st_parameter, value, sizeof(bool));
+		case READ_BOOLEAN :
+			_gfortran_transfer_logical(st_parameter, *(void**)value, sizeof(bool));
+			t->offset += sizeof(bool*);
+			break;
+		case WRITE_BOOLEAN :
+			_gfortran_transfer_logical_write(st_parameter, value, sizeof(bool));
 			t->offset += sizeof(bool);
 			break;
-		case TYPE_BOOLEAN_1D :
+		case READ_BOOLEAN_1D :
+			{
+				int* length = (int*)value;
+				t->offset += sizeof(int);
+				value = *(void**)(t->buffer + t->offset);
+				inside_hook_array = true;
+				asyncio_hook_write_boolean_array_1d(value, length[0]);
+				inside_hook_array = false;
+				t->offset += sizeof(bool*);
+			}
+			break;
+		case WRITE_BOOLEAN_1D :
 			{
 				int* length = (int*)value;
 				t->offset += sizeof(int);
@@ -1274,20 +1649,28 @@ static void st_callback(transaction_t* t, st_parameter_dt* st_parameter)
 				t->offset += sizeof(bool) * length[0];
 			}
 			break;
-		case TYPE_CHAR :
+		case READ_CHAR :
+			{
+				int length = *(int*)value;
+				t->offset += sizeof(int);
+				value = *(void**)(t->buffer + t->offset);
+				_gfortran_transfer_character(st_parameter, value, sizeof(char) * length);
+				t->offset += sizeof(char*);
+			}
+			break;
+		case WRITE_CHAR :
 			{
 				int length = *(int*)value;
 				t->offset += sizeof(int);
 				value = (void*)(t->buffer + t->offset);
-				if (t->kind == TRANSACTION_TYPE_READ)
-					_gfortran_transfer_character(st_parameter, value, sizeof(char) * length);
-				else
-					_gfortran_transfer_character_write(st_parameter, value, sizeof(char) * length);
+				_gfortran_transfer_character_write(st_parameter, value, sizeof(char) * length);
 				t->offset += sizeof(char) * length;
 			}
 			break;
-		case TYPE_CHAR_1D :
-		case TYPE_CHAR_2D :
+		case READ_CHAR_1D :
+		case WRITE_CHAR_1D :
+		case READ_CHAR_2D :
+		case WRITE_CHAR_2D :
 			fprintf(stderr, "ASYNCIO ERROR: not implemented\n");
 			exit(1);
 			break;
