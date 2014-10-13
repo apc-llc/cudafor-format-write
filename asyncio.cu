@@ -1776,9 +1776,50 @@ static char* get_format(void* func, int format)
 
 					if (!strncmp(name, "__GPUFMT_", strlen("__GPUFMT_")))
 					{
-						// This symbol is a format string - record it.
 						name += strlen("__GPUFMT_");
-						formats[name] = (void*)(size_t)sym.st_value;
+						char* format = (char*)(size_t)sym.st_value;
+
+						// Perform basic format checks:
+						// 1) last character is null
+						// 2) first and last non-null characters are brackets
+						if (format[sym.st_size - 1] != '\0')
+						{
+							bool null_found = false;
+							for (int i = sym.st_size - 1; i >= 0; i--)
+								if (format[i] == '\0')
+								{
+									null_found = true;
+									break;
+								}
+							if (!null_found)
+							{
+								fprintf(stderr, "Error: format string \"%s\" is not terminated by c_null_char\n",
+									name);
+								exit(1);
+							}
+							else
+							{
+								fprintf(stderr, "Warning: format string \"%s\" has extra symbols after c_null_char",
+									name);
+								fprintf(stderr, " length should be %zu instead of %zu\n",
+									strlen(format) + 1, (size_t)sym.st_size);
+							}
+						}
+						if (format[0] != '(')
+						{
+							fprintf(stderr, "Error: format string \"%s\" = \"%s\" must start with '(' symbol\n",
+								name, format);
+							exit(1);
+						}
+						if (format[strlen(format) - 1] != ')')
+						{
+							fprintf(stderr, "Error: format string \"%s\" = \"%s\" must finish with ')' symbol\n",
+								name, format);
+							exit(1);
+						}
+
+						// This symbol is a valid format string - record it.
+						formats[name] = (void*)format;
 					}
 				}
 				elf_end(e);
@@ -1957,9 +1998,50 @@ static char* get_format(void* func, int format)
 
 					if (!strncmp(name, "__GPUFMT_", strlen("__GPUFMT_")))
 					{
-						// This symbol is a format string - record it.
 						name += strlen("__GPUFMT_");
-						formats[name] = (void*)(size_t)sym.st_value;
+						char* format = (char*)(size_t)sym.st_value;
+
+						// Perform basic format checks:
+						// 1) last character is null
+						// 2) first and last non-null characters are brackets
+						if (format[sym.st_size - 1] != '\0')
+						{
+							bool null_found = false;
+							for (int i = sym.st_size - 1; i >= 0; i--)
+								if (format[i] == '\0')
+								{
+									null_found = true;
+									break;
+								}
+							if (!null_found)
+							{
+								fprintf(stderr, "Error: format string \"%s\" is not terminated by c_null_char\n",
+									name);
+								exit(1);
+							}
+							else
+							{
+								fprintf(stderr, "Warning: format string \"%s\" has extra symbols after c_null_char",
+									name);
+								fprintf(stderr, " length should be %zu instead of %zu\n",
+									strlen(format) + 1, (size_t)sym.st_size);
+							}
+						}
+						if (format[0] != '(')
+						{
+							fprintf(stderr, "Error: format string \"%s\" = \"%s\" must start with '(' symbol\n",
+								name, format);
+							exit(1);
+						}
+						if (format[strlen(format) - 1] != ')')
+						{
+							fprintf(stderr, "Error: format string \"%s\" = \"%s\" must finish with ')' symbol\n",
+								name, format);
+							exit(1);
+						}
+
+						// This symbol is a valid format string - record it.
+						formats[name] = (void*)format;
 					}
 				}
 				elf_end(e);
