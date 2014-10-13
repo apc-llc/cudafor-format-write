@@ -2039,7 +2039,24 @@ static char* get_format(void* func, int format)
 								name, format);
 							exit(1);
 						}
-
+#if 0
+						// Additional format checks to ensure no default
+						// forms of "i" and "d" formats are used (by some
+						// reason, gfortran does not support them).
+						for (int i = 0, e = strlen(format) - 2; i != e; i++)
+						{
+							if (((format[i] == ',') || (format[i] == '(')) &&
+								((format[i + 1] == 'i') || (format[i + 1] == 'd')))
+							{
+								if ((format[i + 2] >= '0') && (format[i + 2] <= '9'))
+									continue;
+								
+								fprintf(stderr, "Error: malformed integer format in \"%s\" = \"%s\"\n",
+									name, format);
+								exit(1);
+							}
+						}
+#endif
 						// This symbol is a valid format string - record it.
 						formats[name] = (void*)format;
 					}
