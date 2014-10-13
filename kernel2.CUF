@@ -14,6 +14,10 @@
 
   character(18), bind(C,name="__GPUFMT_kernel2_1") :: l_1 = "(1p,6(2x,e25.18))" // c_null_char
 
+  character(24), bind(C,name="__GPUFMT_kernel2_2") :: l_2 = "('check string output')" // c_null_char
+
+  character(60), bind(C,name="__GPUFMT_kernel2_3") :: l_3 = "('check that double output ',E15.3,' is fine')" // c_null_char
+
   end module
 
 
@@ -78,6 +82,13 @@
     call asyncio_write(arr(i+5))
     call asyncio_write(arr(i+6))
   enddo
+  call asyncio_end()
+
+  call asyncio_write_begin('*',funcptr,2)
+  call asyncio_end()
+
+  call asyncio_write_begin('*',funcptr,3)
+  call asyncio_write(2.0)
   call asyncio_end()
 
   end subroutine kernel2
