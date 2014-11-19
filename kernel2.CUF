@@ -16,7 +16,7 @@
 
   character(24), bind(C,name="__GPUFMT_kernel2_2") :: l_2 = "('check string output')" // c_null_char
 
-  character(60), bind(C,name="__GPUFMT_kernel2_3") :: l_3 = "('check that double output ',E15.3,' is fine')" // c_null_char
+  character(47), bind(C,name="__GPUFMT_kernel2_3") :: l_3 = "('check that double output ',E15.3,' is fine')" // c_null_char
 
   end module
 

@@ -11,5 +11,8 @@ call asyncio_flush()
 
 call asyncio_close(3)
 
+call kernel3()
+call kernel3_cpu()
+
 end program test
 
