@@ -99,7 +99,7 @@
     use iso_c_binding
     implicit none
     character(c_char), value :: mode, unt, frmt
-    integer(c_int), optional :: iostat
+    integer(c_int) :: iostat
     end subroutine asyncio_begin_default_unit_default_format_c
 
 #ifdef GPU
@@ -110,7 +110,7 @@
     implicit none
     character(c_char), value :: mode
     integer(c_int), value :: unt
-    integer(c_int), optional :: iostat
+    integer(c_int) :: iostat
     end subroutine asyncio_begin_unit_unformatted_c
 
 #ifdef GPU
@@ -122,7 +122,7 @@
     character(c_char), value :: mode
     integer(c_int), value :: unt
     character(c_char), value :: frmt
-    integer(c_int), optional :: iostat
+    integer(c_int) :: iostat
     end subroutine asyncio_begin_unit_default_format_c
 
 #ifdef GPU
@@ -135,7 +135,7 @@
     character(c_char), value :: unt
     integer :: func
     integer(c_int), value :: frmt
-    integer(c_int), optional :: iostat
+    integer(c_int) :: iostat
     end subroutine asyncio_begin_default_unit_formatted_c
 
 #ifdef GPU
@@ -148,7 +148,7 @@
     integer(c_int), value :: unt
     integer :: func
     integer(c_int), value :: frmt
-    integer(c_int), optional :: iostat
+    integer(c_int) :: iostat
     end subroutine asyncio_begin_unit_formatted_c
 
     subroutine asyncio_read_integer_c(val) bind(C)
